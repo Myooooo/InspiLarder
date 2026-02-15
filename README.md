@@ -32,28 +32,20 @@ cp backend/.env.example backend/.env
 # - SECRET_KEY: JWT 密钥
 ```
 
-### 3. 启动后端
+### 3. 启动服务
 
 ```bash
 # 安装依赖
 pip install -r backend/requirements.txt
 
-# 启动服务
+# 启动服务（前后端统一在 8000 端口）
 cd backend
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 4. 启动前端
+### 4. 访问
 
-```bash
-# 新终端
-cd frontend
-python server.py
-```
-
-### 5. 访问
-
-- 打开 http://localhost:3000
+- 打开 http://localhost:8000
 - 默认管理员账号: `admin` / `admin123`
 
 ## 项目结构
@@ -124,6 +116,57 @@ APP_NAME=灵感食仓
 ```
 
 ## 部署
+
+### 简单部署 (Gunicorn)
+
+后端已内置前端服务，直接启动即可：
+
+```bash
+cd backend
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app -b 0.0.0.0:8000
+```
+
+### Ubuntu 服务器 (Systemd)
+
+1. 上传代码到服务器：
+```bash
+cd /var/www
+git clone <your-repo> inspiralarder
+cd inspiralarder
+```
+
+2. 创建虚拟环境并安装依赖：
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r backend/requirements.txt
+```
+
+3. 配置环境变量：
+```bash
+cp backend/.env.example backend/.env
+nano backend/.env
+```
+
+4. 创建 systemd 服务：
+```bash
+sudo cp deploy/inspilarder.service /etc/systemd/system/
+sudo nano /etc/systemd/system/inspilarder.service
+# 修改路径为实际路径
+```
+
+5. 启动服务：
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start inspiralarder
+sudo systemctl enable inspiralarder  # 开机自启
+```
+
+6. 查看状态：
+```bash
+sudo systemctl status inspiralarder
+journalctl -u inspiralarder -f  # 查看日志
+```
 
 ### 生产环境 (Nginx + Gunicorn)
 

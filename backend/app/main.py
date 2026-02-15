@@ -38,12 +38,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 注册API路由
 app.include_router(api_router, prefix="/api/v1")
 
 # 静态文件服务（用于上传的图片）
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+
+import pathlib
+frontend_path = pathlib.Path(__file__).parent.parent.parent / "frontend"
+if frontend_path.exists():
+    @app.get("/")
+    async def serve_index():
+        from fastapi.responses import FileResponse
+        return FileResponse(frontend_path / "index.html")
+    
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api/"):
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        
+        file_path = frontend_path / full_path
+        if file_path.is_file():
+            from fastapi.responses import FileResponse
+            return FileResponse(file_path)
+        
+        from fastapi.responses import FileResponse
+        return FileResponse(frontend_path / "index.html")
 
 # 异常处理
 @app.exception_handler(Exception)
