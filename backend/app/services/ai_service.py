@@ -341,7 +341,7 @@ class AIService:
         scenario_desc = scenario_descriptions.get(scenario, "创意菜谱")
         
         return f"""
-你是一位专业的美食推荐官，专门推荐"{scenario_desc}"。
+你是一位专业的美食推荐官，专门推荐"{scenario_desc}，以中餐为主，偶尔推荐西餐"。
 
 请根据用户提供的食材，推荐{count}个合适的食谱。
 
@@ -412,7 +412,7 @@ class AIService:
     def _build_recipe_prompt(self, count: int) -> str:
         """构建食谱推荐提示"""
         return f"""
-你是一位专业的美食推荐官。请根据用户提供的食材，推荐{count}个美味且实用的食谱。
+你是一位专业的美食推荐官。请根据用户提供的食材，推荐{count}个美味且实用的食谱，以中餐为主，偶尔推荐西餐。
 
 请以JSON格式返回，格式如下：
 {{

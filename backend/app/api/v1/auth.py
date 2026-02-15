@@ -295,12 +295,12 @@ async def login(
         "is_superuser": user.role == "admin",
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None,
-        "last_login": user.last_login.isoformat() if user.last_login else None,
+        "last_login": user.last_login.isoformat() if user.last_login is not None else None,
     }
     
     # 更新最后登录时间
     from datetime import datetime, timezone
-    user.last_login = datetime.now(timezone.utc)
+    setattr(user, 'last_login', datetime.now(timezone.utc))
     await db.commit()
     
     # 生成访问令牌
@@ -408,7 +408,7 @@ async def refresh_token(
     )
     user = result.scalar_one_or_none()
     
-    if not user or not user.is_active:
+    if not user or not bool(user.is_active):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户不存在或已被禁用",
