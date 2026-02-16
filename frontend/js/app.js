@@ -88,22 +88,25 @@ const utils = {
     },
 
     getIngredientColorClass(ingText) {
-        if (ingText.match(/菜|蔬|瓜|葱|蒜|豆|菇|笋|莲|薯|芋|玉米|萝卜|果|梅/)) {
+        if (ingText.match(/苹果|香蕉|橙子|柚子|梨|桃|李|杏|樱桃|草莓|蓝莓|芒果|菠萝|西瓜|哈密瓜|葡萄|猕猴桃|石榴|榴莲|山竹|火龙果|荔枝|龙眼|枇杷|椰子|柠檬|甘蔗|柿子|枣|橘子|柑|百香果|牛油果|桃子|水果/)) {
+            return 'bg-pink-100 text-pink-700 border border-pink-200';
+        }
+        if (ingText.match(/菜|蔬|瓜|葱|蒜|豆|菇|笋|莲|薯|芋|玉米|萝卜|梅|番茄|黄瓜|茄子|土豆|红薯|南瓜|冬瓜|西瓜|苦瓜|丝瓜|腐竹|木耳|银耳|莴笋|莲花白|茼蒿|芥蓝|茴香|芫荽|韭黄|折耳根|马齿苋/)) {
             return 'bg-green-100 text-green-700 border border-green-200';
         }
         if (ingText.match(/水|奶|酪|酵|黄油|蛋/)) {
             return 'bg-blue-100 text-blue-700 border border-blue-200';
         }
-        if (ingText.match(/肉|肠|排|腿|翅|爪|骨|腊|鸡|鸭|鹅|猪|牛|羊/)) {
+        if (ingText.match(/肉|肠|排|腿|翅|爪|骨|腊|鸡|鸭|鹅|猪|牛|羊|五花|里脊|脑花|血/)) {
             return 'bg-red-100 text-red-700 border border-red-200';
         }
-        if (ingText.match(/鱼|虾|蟹|贝|鱿|墨|鲍|参|章鱼|螺|蛙/)) {
+        if (ingText.match(/鱼|虾|蟹|贝|鱿|墨|鲍|参|海参|海胆|海螺|花蛤|文蛤|蛏子|青口|生蚝|扇贝|海带|紫菜|裙带菜|海白菜|海藻/)) {
             return 'bg-cyan-100 text-cyan-700 border border-cyan-200';
         }
-        if (ingText.match(/米|饭|粥|馒头|饼|饺|包|粉|面/)) {
+        if (ingText.match(/米|饭|粥|馒头|饼|饺|包|粉|面|面条|米粉|粉丝|年糕|糍粑|汤圆|元宵|粽子|面包|蛋糕|饼干|披萨|汉堡|三明治|沙拉|土豆泥/)) {
             return 'bg-amber-100 text-amber-700 border border-amber-200';
         }
-        if (ingText.match(/酱|椒|味|鸡精|味精|蚝油|麻油|香油|酒|生抽|老抽|盐|糖|醋|油/)) {
+        if (ingText.match(/酱|椒|味|鸡精|味精|油|酒|生抽|老抽|盐|糖|醋|八角|桂皮|香叶|草果|陈皮|甘草|小茴香|孜然|五香粉|十三香|咖喱|芥末|喼汁/)) {
             return 'bg-purple-100 text-purple-700 border border-purple-200';
         }
         return 'bg-gray-100 text-gray-600';
@@ -2784,9 +2787,26 @@ const app = {
         }
 
         try {
-            ui.showLoading('#main-content', '加载中...');
+            const loadingHTML = `
+                <div class="p-4 md:p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">用户管理</h1>
+                            <p class="text-gray-500">管理系统用户账户</p>
+                        </div>
+                        <button onclick="app.showCreateUserModal()" class="btn btn-primary">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            新建用户
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-center py-12">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('main-content').innerHTML = loadingHTML;
+            
             const usersData = await api.get('/admin/admin/users?page=1&page_size=100');
-            ui.hideLoading('#main-content');
 
             const users = usersData.items || [];
 

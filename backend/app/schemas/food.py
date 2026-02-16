@@ -195,6 +195,11 @@ class FoodItemBase(BaseModel):
         max_length=2000,
         description="备注",
     )
+    icon: Optional[str] = Field(
+        default=None,
+        max_length=10,
+        description="图标emoji",
+    )
     
     @field_validator("unit")
     @classmethod
