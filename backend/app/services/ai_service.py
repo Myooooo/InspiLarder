@@ -69,11 +69,16 @@ class AIService:
     def __init__(self):
         """初始化AI服务"""
         self.api_key = settings.OPENAI_API_KEY
-        self.model = settings.OPENAI_VISION_MODEL
+        self.vision_model = settings.OPENAI_VISION_MODEL
+        self.vision_temperature = settings.VISION_TEMPERATURE
+        self.vision_top_p = settings.VISION_TOP_P
+        self.text_model = settings.OPENAI_TEXT_MODEL
+        self.text_temperature = settings.TEXT_TEMPERATURE
+        self.text_top_p = settings.TEXT_TOP_P
         self.base_url = settings.OPENAI_BASE_URL
         self._client = None
         
-        logger.info(f"AI服务初始化完成，使用模型: {self.model}")
+        logger.info(f"AI服务初始化完成，视觉模型: {self.vision_model}, 文本模型: {self.text_model}")
     
     @property
     def client(self):
@@ -129,7 +134,7 @@ class AIService:
         
         try:
             response = await self.client.chat.completions.create(
-                model=self.model,
+                model=self.vision_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {
@@ -148,9 +153,9 @@ class AIService:
                         ],
                     },
                 ],
-                temperature=0.2,
+                temperature=self.vision_temperature,
+                top_p=self.vision_top_p,
                 max_tokens=1000,
-                # response_format={"type": "json_object"},  # 某些模型不支持
             )
             
             # 解析响应
@@ -219,14 +224,14 @@ class AIService:
         
         try:
             response = await self.client.chat.completions.create(
-                model=self.model,
+                model=self.text_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=0.7,
+                temperature=self.text_temperature,
+                top_p=self.text_top_p,
                 max_tokens=2000,
-                # response_format={"type": "json_object"},
             )
             
             # 解析响应
@@ -301,14 +306,14 @@ class AIService:
         
         try:
             response = await self.client.chat.completions.create(
-                model=self.model,
+                model=self.text_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=0.8,
+                temperature=self.text_temperature,
+                top_p=self.text_top_p,
                 max_tokens=2500,
-                # response_format={"type": "json_object"},
             )
             
             content = response.choices[0].message.content

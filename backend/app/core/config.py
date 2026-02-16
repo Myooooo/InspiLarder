@@ -26,11 +26,15 @@ class Settings(BaseSettings):
 	OPENAI_API_KEY: str = ""
 	OPENAI_BASE_URL: str = "https://api.openai.com/v1"
 	
-	# 视觉模型 - 用于分析图片、用于分析图片、识别食物
-	OPENAI_VISION_MODEL: str = "gpt-4o"  # 支持图片输入的模型
+	# 视觉模型 - 用于分析图片、识别食物
+	OPENAI_VISION_MODEL: str = "gpt-4o"
+	VISION_TEMPERATURE: float = 0.2
+	VISION_TOP_P: float = 0.9
 	
 	# 文本模型 - 用于菜谱推荐、对话等
-	OPENAI_TEXT_MODEL: str = "gpt-4o-mini"  # 更快的文本模型
+	OPENAI_TEXT_MODEL: str = "gpt-4o-mini"
+	TEXT_TEMPERATURE: float = 0.7
+	TEXT_TOP_P: float = 0.9
 	
 	# 文件上传配置
 	UPLOAD_DIR: str = "uploads"
