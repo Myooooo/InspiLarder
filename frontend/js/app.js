@@ -539,17 +539,18 @@ const ui = {
                     div.appendChild(flex);
                 } else if (field.type === 'icon') {
                     const flex = document.createElement('div');
-                    flex.className = 'flex gap-2';
+                    flex.className = 'flex gap-2 items-center';
                     
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.id = `field-${field.name}`;
-                    input.className = 'flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-center text-xl';
+                    input.className = 'w-16 h-12 px-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-center text-2xl flex-shrink-0';
                     input.value = field.value || '📦';
                     input.readOnly = true;
                     
                     const btn = document.createElement('button');
-                    btn.className = 'px-4 py-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-200 hover:bg-orange-100 transition-colors';
+                    btn.type = 'button';
+                    btn.className = 'flex-1 px-3 py-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-200 hover:bg-orange-100 transition-colors text-sm font-medium';
                     btn.textContent = '选择图标';
                     btn.onclick = async () => {
                         const emoji = await ui.emojiPicker.show({ context: field.context || 'food' });
@@ -887,12 +888,27 @@ const app = {
             this.restoreSession();
             this.initRouter();
             this.bindGlobalEvents();
-            await this.loadInitialData();
+            
+            // 如果用户已登录，先加载数据
+            if (state.currentUser) {
+                await this.loadInitialData();
+            }
+            
+            // 触发初始路由渲染
+            let path = window.location.pathname.slice(1) || 'home';
+            path = path.replace(/^\//, '');
+            if (!path) path = 'home';
+            state.currentPage = path;
+            this.renderPage(path);
+            this.updateNavState(path);
+            
+            console.log('✅ 数据加载完成');
             this.hideLoadingScreen();
             console.log('✅ 应用初始化完成');
         } catch (error) {
             console.error('❌ 初始化失败:', error);
             this.showError('初始化失败，请刷新页面重试');
+            this.hideLoadingScreen();
         }
     },
 
@@ -933,18 +949,24 @@ const app = {
     },
 
     initRouter() {
-        const handleRoute = () => {
+        const handleRoute = async () => {
             let path = window.location.pathname.slice(1) || 'home';
             path = path.replace(/^\//, '');
             if (!path) path = 'home';
             state.currentPage = path;
+            
+            // 如果数据未加载且用户已登录，先加载数据
+            if (state.currentUser && state.foods.length === 0 && state.locations.length === 0) {
+                await this.loadInitialData();
+            }
+            
             this.renderPage(path);
             this.updateNavState(path);
         };
         
         // 使用 popstate 监听浏览器前进/后退
         window.addEventListener('popstate', handleRoute);
-        handleRoute();
+        // 不再在此处立即调用 handleRoute()，而是在 loadInitialData 完成后调用
     },
 
     navigateTo(path) {
@@ -1164,7 +1186,7 @@ const app = {
                                     <input type="text" id="login-username" required
                                         class="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-gray-800"
                                         placeholder="请输入用户名或邮箱"
-                                        value="admin">
+                                        value="">
                                 </div>
                             </div>
                             <div>
@@ -1174,7 +1196,7 @@ const app = {
                                     <input type="password" id="login-password" required 
                                         class="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-gray-800"
                                         placeholder="请输入密码"
-                                        value="admin123">
+                                        value="">
                                 </div>
                             </div>
                             <button type="submit" id="login-btn" 
@@ -2138,6 +2160,21 @@ const app = {
         document.getElementById('edit-expiry').value = data.expiry_date || '';
         document.getElementById('edit-notes').value = data.storage_advice || '';
         document.getElementById('edit-opened').checked = false;
+        
+        // 设置图标（优先使用AI返回的图标，否则根据类别获取默认图标）
+        const iconInput = document.getElementById('edit-icon');
+        if (iconInput) {
+            iconInput.value = data.icon || utils.getCategoryIcon(data.category) || '📦';
+            
+            // 图标选择按钮事件
+            const iconBtn = document.getElementById('edit-icon-btn');
+            if (iconBtn) {
+                iconBtn.onclick = async () => {
+                    const emoji = await ui.emojiPicker.show({ context: 'food' });
+                    if (emoji) iconInput.value = emoji;
+                };
+            }
+        }
 
         // 填充位置选择
         this.populateLocationSelect();
@@ -2175,6 +2212,7 @@ const app = {
         const expiryDate = document.getElementById('edit-expiry')?.value;
         const isOpened = document.getElementById('edit-opened')?.checked;
         const notes = document.getElementById('edit-notes')?.value;
+        const iconInput = document.getElementById('edit-icon')?.value;
 
         if (!name) {
             ui.toast('请输入食物名称', 'warning');
@@ -2195,7 +2233,7 @@ const app = {
             expiry_date: expiryDate || null,
             is_opened: isOpened,
             notes,
-            icon: utils.getCategoryIcon(category)
+            icon: iconInput || utils.getCategoryIcon(category)
         };
 
         try {

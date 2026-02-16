@@ -21,6 +21,7 @@ class FoodRecognitionResult:
     name: str
     category: str
     confidence: float
+    icon: Optional[str] = None
     description: Optional[str] = None
     expiry_days: Optional[int] = None
     
@@ -28,6 +29,7 @@ class FoodRecognitionResult:
         """转换为字典"""
         return {
             "name": self.name,
+            "icon": self.icon,
             "category": self.category,
             "confidence": self.confidence,
             "description": self.description,
@@ -163,6 +165,7 @@ class AIService:
                 results.append(
                     FoodRecognitionResult(
                         name=item.get("name", "未知食物"),
+                        icon=item.get("icon"),
                         category=item.get("category", "other"),
                         confidence=item.get("confidence", 0.8),
                         description=item.get("description"),
@@ -397,6 +400,7 @@ class AIService:
     "foods": [
         {
             "name": "食物名称（中文）",
+            "icon": "推荐的相关Emoji图标，如🍎、🥬、🥩等",
             "category": "分类（vegetable/fruit/meat/seafood/dairy/grain/snack/drink/condiment/other）",
             "confidence": 0.95,
             "description": "简短描述（可选）",
@@ -406,9 +410,11 @@ class AIService:
 }
 
 注意：
-- 尽可能识别图片中的所有食物
+- 识别图片中最主要的食物
+- icon字段必须返回一个合适的中文Emoji，如苹果用🍎，白菜用🥬，肉类用🥩，鱼类用🐟等
+- 如果有多种食物或是一道菜，则识别出菜品名称，并在description中列出主要食材
 - confidence 是 0-1 之间的置信度
-- expiry_days 是建议的保质期（天），如果不确定可以留空
+- expiry_days 是保质期，如果包装上有可见的保质期则填入，否则提供建议的保质期（天），如果不确定可以留空
 - 只返回JSON，不要添加其他说明文字
 """
     
@@ -444,6 +450,7 @@ class AIService:
         return [
             FoodRecognitionResult(
                 name="苹果",
+                icon="🍎",
                 category="fruit",
                 confidence=0.95,
                 description="新鲜的红苹果",
@@ -451,10 +458,35 @@ class AIService:
             ),
             FoodRecognitionResult(
                 name="香蕉",
+                icon="🍌",
                 category="fruit",
                 confidence=0.92,
                 description="黄色的香蕉",
                 expiry_days=5,
+            ),
+            FoodRecognitionResult(
+                name="鸡蛋",
+                icon="🥚",
+                category="dairy",
+                confidence=0.90,
+                description="新鲜的鸡蛋",
+                expiry_days=21,
+            ),
+            FoodRecognitionResult(
+                name="白菜",
+                icon="🥬",
+                category="vegetable",
+                confidence=0.88,
+                description="新鲜的白菜",
+                expiry_days=7,
+            ),
+            FoodRecognitionResult(
+                name="牛奶",
+                icon="🥛",
+                category="dairy",
+                confidence=0.85,
+                description="新鲜的牛奶",
+                expiry_days=7,
             ),
         ]
     
