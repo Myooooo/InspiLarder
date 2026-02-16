@@ -69,6 +69,14 @@ const utils = {
         return Math.floor((date - now) / (1000 * 60 * 60 * 24));
     },
 
+    getExpiryDisplayText(days) {
+        if (days === null) return '-';
+        if (days < 0) return `已过期 ${Math.abs(days)} 天`;
+        if (days === 0) return '今天';
+        if (days === 1) return '明天';
+        return `剩 ${days} 天`;
+    },
+
     getCategoryIcon(category) {
         const cat = state.categories.find(c => c.id === category);
         return cat ? cat.icon : '🍽️';
@@ -77,6 +85,28 @@ const utils = {
     getCategoryName(category) {
         const cat = state.categories.find(c => c.id === category);
         return cat ? cat.name : '其他';
+    },
+
+    getIngredientColorClass(ingText) {
+        if (ingText.match(/菜|蔬|瓜|葱|蒜|豆|菇|笋|莲|薯|芋|玉米|萝卜|果|梅/)) {
+            return 'bg-green-100 text-green-700 border border-green-200';
+        }
+        if (ingText.match(/水|奶|酪|酵|黄油|蛋/)) {
+            return 'bg-blue-100 text-blue-700 border border-blue-200';
+        }
+        if (ingText.match(/肉|肠|排|腿|翅|爪|骨|腊|鸡|鸭|鹅|猪|牛|羊/)) {
+            return 'bg-red-100 text-red-700 border border-red-200';
+        }
+        if (ingText.match(/鱼|虾|蟹|贝|鱿|墨|鲍|参|章鱼|螺|蛙/)) {
+            return 'bg-cyan-100 text-cyan-700 border border-cyan-200';
+        }
+        if (ingText.match(/米|饭|粥|馒头|饼|饺|包|粉|面/)) {
+            return 'bg-amber-100 text-amber-700 border border-amber-200';
+        }
+        if (ingText.match(/酱|椒|味|鸡精|味精|蚝油|麻油|香油|酒|生抽|老抽|盐|糖|醋|油/)) {
+            return 'bg-purple-100 text-purple-700 border border-purple-200';
+        }
+        return 'bg-gray-100 text-gray-600';
     },
 
     debounce(fn, delay) {
@@ -95,7 +125,7 @@ const utils = {
         });
     },
 
-    async compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+    async compressImage(file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -135,6 +165,24 @@ const utils = {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    },
+
+    formatLocationOptions(locations) {
+        const parentMap = {};
+        locations.forEach(loc => {
+            if (loc.parent_id) {
+                const parent = locations.find(p => p.id === loc.parent_id);
+                parentMap[loc.id] = parent ? parent.name : null;
+            }
+        });
+        
+        return locations.map(location => {
+            const parentName = parentMap[location.id];
+            const label = parentName 
+                ? `${location.icon || '📦'} ${parentName} - ${location.name}`
+                : `${location.icon || '📦'} ${location.name}`;
+            return { value: location.id, label };
+        });
     }
 };
 
@@ -973,12 +1021,18 @@ const app = {
         
         const expiringFoods = state.foods.filter(f => {
             const days = utils.getRemainingDays(f.expiry_date);
-            return days !== null && days <= 3 && !f.is_finished;
+            return days !== null && days >= 0 && days <= 3 && !f.is_finished;
         });
 
         const freshFoods = state.foods.filter(f => {
             const days = utils.getRemainingDays(f.expiry_date);
             return days !== null && days > 3 && !f.is_finished;
+        });
+
+        // 获取过期食品（已过期）
+        const expiredFoods = state.foods.filter(f => {
+            const days = utils.getRemainingDays(f.expiry_date);
+            return days !== null && days < 0 && !f.is_finished;
         });
 
         return `
@@ -993,17 +1047,17 @@ const app = {
                 
                 <!-- 统计卡片 -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 stagger-list">
-                    <div class="stat-card">
+                    <div class="stat-card cursor-pointer hover:shadow-md transition-shadow" onclick="document.getElementById('food-list').scrollIntoView({behavior: 'smooth'})">
                         <div class="stat-card-icon stat-card-icon-green">🥬</div>
                         <div class="stat-card-value">${state.foods?.filter(f => !f.is_finished).length || 0}</div>
                         <div class="stat-card-label">食材总数</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card cursor-pointer hover:shadow-md transition-shadow" onclick="document.getElementById('expiry-section').scrollIntoView({behavior: 'smooth'})">
                         <div class="stat-card-icon stat-card-icon-amber">⚠️</div>
-                        <div class="stat-card-value text-orange-500">${expiringFoods.length || 0}</div>
-                        <div class="stat-card-label">即将过期</div>
+                        <div class="stat-card-value text-orange-500">${expiringFoods.length + expiredFoods.length || 0}</div>
+                        <div class="stat-card-label">临期/过期</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card cursor-pointer hover:shadow-md transition-shadow" onclick="app.navigateTo('spaces')">
                         <div class="stat-card-icon stat-card-icon-blue">📍</div>
                         <div class="stat-card-value">${state.locations?.length || 0}</div>
                         <div class="stat-card-label">储存空间</div>
@@ -1015,22 +1069,41 @@ const app = {
                     </div>
                 </div>
 
-                ${expiringFoods.length > 0 ? `
-                <!-- 临期提醒 -->
-                <div class="expiry-alert mb-6 animate-fadeIn">
+                ${(expiringFoods.length > 0 || expiredFoods.length > 0) ? `
+                <!-- 临期/过期提醒 -->
+                <div id="expiry-section" class="expiry-alert mb-6 animate-fadeIn">
+                    ${expiredFoods.length > 0 ? `
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">⚠️</span>
+                        <span class="font-bold text-red-800">已过期提醒</span>
+                        <span class="text-sm text-red-700 ml-auto">${expiredFoods.length} 个食材</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        ${expiredFoods.slice(0, 5).map(f => {
+                            return `<span class="px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm border-2 border-red-500 font-bold shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="app.showFoodDetail(${f.id})">
+                                ${f.icon || utils.getCategoryIcon(f.category)} ${f.name} (已过期)
+                            </span>`;
+                        }).join('')}
+                        ${expiredFoods.length > 5 ? `<span class="px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-sm font-bold">+${expiredFoods.length - 5}</span>` : ''}
+                    </div>
+                    ` : ''}
+                    ${expiringFoods.length > 0 ? `
                     <div class="flex items-center gap-2 mb-3">
                         <span class="text-xl">🔥</span>
                         <span class="font-bold text-red-700">即将过期提醒</span>
                         <span class="text-sm text-red-600 ml-auto">${expiringFoods.length} 个食材</span>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        ${expiringFoods.slice(0, 5).map(f => `
-                            <span class="px-3 py-1.5 bg-white text-red-600 rounded-full text-sm border border-red-200 font-medium shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="app.showFoodDetail(${f.id})">
-                                ${f.icon || utils.getCategoryIcon(f.category)} ${f.name} (剩 ${utils.getRemainingDays(f.expiry_date)} 天)
-                            </span>
-                        `).join('')}
+                        ${expiringFoods.slice(0, 5).map(f => {
+                            const days = utils.getRemainingDays(f.expiry_date);
+                            const displayText = days === 0 ? '今天' : `剩 ${days} 天`;
+                            return `<span class="px-3 py-1.5 bg-white text-red-600 rounded-full text-sm border border-red-200 font-medium shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="app.showFoodDetail(${f.id})">
+                                ${f.icon || utils.getCategoryIcon(f.category)} ${f.name} (${displayText})
+                            </span>`;
+                        }).join('')}
                         ${expiringFoods.length > 5 ? `<span class="px-3 py-1.5 bg-red-100 text-red-600 rounded-full text-sm font-medium">+${expiringFoods.length - 5}</span>` : ''}
                     </div>
+                    ` : ''}
                 </div>
                 ` : ''}
                 
@@ -1333,7 +1406,7 @@ const app = {
                             ui.hideLoading(saveBtn);
                             return;
                         }
-                        await api.post('/locations/', { name, icon, parent_id: parsedParentId });
+                        await api.post('/locations', { name, icon, parent_id: parsedParentId });
                         ui.toast('子空间创建成功！', 'success');
                     } else {
                         // 创建根空间
@@ -1411,7 +1484,7 @@ const app = {
                 <div class="ai-message mb-6">
                     <div class="flex gap-4">
                         <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                            <span class="text-2xl">🧠</span>
+                            <span class="text-2xl">🤔</span>
                         </div>
                         <div class="flex-1">
                             <p class="text-gray-700 mb-3 leading-relaxed">
@@ -1427,6 +1500,9 @@ const app = {
                                 </button>
                                 <button onclick="app.fetchRecipes('creative')" class="px-4 py-2 bg-white text-purple-600 rounded-xl text-sm font-medium border border-purple-200 hover:bg-purple-50 hover:border-purple-300 transition-all flex items-center gap-2 shadow-sm">
                                     <span>✨</span> 创意混搭
+                                </button>
+                                <button onclick="app.fetchRecipesCustom()" class="px-4 py-2 bg-white text-blue-600 rounded-xl text-sm font-medium border border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center gap-2 shadow-sm">
+                                    <span>💭</span> 我来决定
                                 </button>
                             </div>
                         </div>
@@ -1574,13 +1650,15 @@ const app = {
             const categoryLabels = {
                 'quick': '快手晚餐',
                 'expiring': '消耗临期',
-                'creative': '创意混搭'
+                'creative': '创意混搭',
+                'custom': '自定义'
             };
             
             const categoryColors = {
                 'quick': { bg: 'bg-red-100', text: 'text-red-600', label: '⚡' },
                 'expiring': { bg: 'bg-amber-100', text: 'text-amber-600', label: '🔥' },
-                'creative': { bg: 'bg-purple-100', text: 'text-purple-600', label: '✨' }
+                'creative': { bg: 'bg-purple-100', text: 'text-purple-600', label: '✨' },
+                'custom': { bg: 'bg-blue-100', text: 'text-blue-600', label: '💭' }
             };
             
             list.innerHTML = data.items.map(recipe => {
@@ -1621,20 +1699,7 @@ const app = {
                             <div class="flex flex-wrap gap-2 mb-4">
                                 ${(recipe.ingredients || []).map(ing => {
                                     let ingText = typeof ing === 'string' ? ing : (ing.name || '未知食材');
-                                    let colorClass = 'bg-gray-100 text-gray-600';
-                                            
-                                    if (ingText.match(/菠菜|青菜|蔬菜|白菜|生菜|番茄|土豆|胡萝卜|洋葱|蒜|姜/)) {
-                                        colorClass = 'bg-green-100 text-green-700 border border-green-200';
-                                    } else if (ingText.match(/牛奶|鸡蛋|奶酪|奶油|黄油/)) {
-                                        colorClass = 'bg-blue-100 text-blue-700 border border-blue-200';
-                                    } else if (ingText.match(/牛肉|猪肉|鸡肉|羊肉|牛排|鸡胸|腊肠|虾|鱼|三文鱼/)) {
-                                        colorClass = 'bg-red-100 text-red-700 border border-red-200';
-                                    } else if (ingText.match(/大米|面条|意面|面粉|面包/)) {
-                                        colorClass = 'bg-amber-100 text-amber-700 border border-amber-200';
-                                    } else if (ingText.match(/酱油|盐|糖|醋|油|胡椒|调料/)) {
-                                        colorClass = 'bg-purple-100 text-purple-700 border border-purple-200';
-                                    }
-                                            
+                                    let colorClass = utils.getIngredientColorClass(ingText);
                                     return `<span class="px-3 py-1 rounded-full text-sm ${colorClass}">${ing}</span>`;
                                 }).join('')}
                             </div>
@@ -1869,7 +1934,7 @@ const app = {
                     label: '存放位置', 
                     type: 'select', 
                     value: '', 
-                    options: [{value: '', label: '未分类'}, ...state.locations.map(l => ({value: l.id, label: (l.icon||'📦') + ' ' + l.name}))] 
+                    options: [{value: '', label: '未分类'}, ...utils.formatLocationOptions(state.locations)] 
                 },
                 { 
                     name: 'quantity', 
@@ -2006,7 +2071,7 @@ const app = {
 
         try {
             // 压缩图片
-            const compressedImage = await utils.compressImage(state.selectedImage, 800, 800, 0.8);
+            const compressedImage = await utils.compressImage(state.selectedImage, 1024, 1024, 0.8);
             
             // 创建FormData
             const formData = new FormData();
@@ -2092,10 +2157,11 @@ const app = {
 
         select.innerHTML = '<option value="">选择存放位置</option>';
         
-        state.locations.forEach(location => {
+        const locationOptions = utils.formatLocationOptions(state.locations);
+        locationOptions.forEach(loc => {
             const option = document.createElement('option');
-            option.value = location.id;
-            option.textContent = `${location.icon || '📦'} ${location.name}`;
+            option.value = loc.value;
+            option.textContent = loc.label;
             select.appendChild(option);
         });
     },
@@ -2444,7 +2510,7 @@ const app = {
                     label: '存放位置', 
                     type: 'select', 
                     value: food.location_id, 
-                    options: [{value: '', label: '未分类'}, ...state.locations.map(l => ({value: l.id, label: (l.icon||'📦') + ' ' + l.name}))] 
+                    options: [{value: '', label: '未分类'}, ...utils.formatLocationOptions(state.locations)] 
                 },
                 { 
                     name: 'quantity', 
@@ -2545,6 +2611,46 @@ const app = {
         }
     },
 
+    async fetchRecipesCustom() {
+        const customRequirement = await ui.input({
+            title: '告诉我您的需求',
+            message: '例如：想做一道简单的早餐、想用土豆做一道菜、想吃点清淡的...',
+            placeholder: '请输入您的需求',
+            icon: '💭'
+        });
+
+        if (!customRequirement || !customRequirement.trim()) {
+            return;
+        }
+
+        const foods = state.foods.filter(f => !f.is_finished);
+        const expiringFoods = foods.filter(f => {
+            const days = utils.getRemainingDays(f.expiry_date);
+            return days !== null && days <= 3;
+        });
+
+        this.showAILoading('正在为您推荐菜谱...');
+
+        try {
+            const result = await api.post('/ai/recipes', {
+                scenario: 'custom',
+                custom_requirement: customRequirement.trim(),
+                foods: foods.map(f => ({ name: f.name, category: f.category })),
+                expiringFoods: expiringFoods.map(f => f.name)
+            });
+
+            this.hideAILoading();
+
+            if (result.success) {
+                state.currentRecipes = result.recipes;
+                this.displayRecipes(result);
+            }
+        } catch (error) {
+            this.hideAILoading();
+            ui.toast('获取推荐失败: ' + error.message, 'error');
+        }
+    },
+
     displayRecipes(result) {
         const container = document.getElementById('recipe-results');
         if (!container) return;
@@ -2602,19 +2708,7 @@ const app = {
                                     <div class="flex flex-wrap gap-2 mb-4">
                                         ${(recipe.ingredients || []).map(ing => {
                                             let ingText = typeof ing === 'string' ? ing : (ing.name || '未知食材');
-                                            let colorClass = 'bg-gray-100 text-gray-600';
-                                            
-                                            if (ingText.match(/菠菜|青菜|蔬菜|白菜|生菜|番茄|土豆|胡萝卜|洋葱|蒜|姜/)) {
-                                                colorClass = 'bg-green-100 text-green-700 border border-green-200';
-                                            } else if (ingText.match(/牛奶|鸡蛋|奶酪|奶油|黄油/)) {
-                                                colorClass = 'bg-blue-100 text-blue-700 border border-blue-200';
-                                            } else if (ingText.match(/牛肉|猪肉|鸡肉|羊肉|牛排|鸡胸|腊肠|虾|鱼|三文鱼/)) {
-                                                colorClass = 'bg-red-100 text-red-700 border border-red-200';
-                                            } else if (ingText.match(/大米|面条|意面|面粉|面包/)) {
-                                                colorClass = 'bg-amber-100 text-amber-700 border border-amber-200';
-                                            } else if (ingText.match(/酱油|盐|糖|醋|油|胡椒|调料/)) {
-                                                colorClass = 'bg-purple-100 text-purple-700 border border-purple-200';
-                                            }
+                                            let colorClass = utils.getIngredientColorClass(ingText);
                                             
                                             if (typeof ing === 'string') {
                                                 return `<span class="px-3 py-1 rounded-full text-sm ${colorClass}">${ing}</span>`;

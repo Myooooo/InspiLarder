@@ -104,6 +104,7 @@ async def recommend_recipes(
         scenario = request_data.get("scenario", "creative")
         foods = request_data.get("foods", [])
         expiring_foods = request_data.get("expiringFoods", [])
+        custom_requirement = request_data.get("custom_requirement", "")
         
         logger.info(f"用户 {current_user.id} 请求食谱推荐，场景: {scenario}")
         
@@ -123,13 +124,15 @@ async def recommend_recipes(
                 ingredients=ingredient_names,
                 expiring_ingredients=expiring_foods,
                 scenario=scenario,
+                custom_requirement=custom_requirement if scenario == "custom" else "",
                 count=3,
             )
             
             scenario_messages = {
                 "quick": f"今天冰箱里有 {len(foods)} 种食材，我为您挑选了3道快手菜，15分钟内就能上桌！",
                 "expiring": f"发现您有 {len(expiring_foods)} 种食材即将过期，这些菜谱可以帮您快速消耗！",
-                "creative": f"利用您现有的 {len(foods)} 种食材，我为您设计了一些创意组合，让剩余食材焕发新生！"
+                "creative": f"利用您现有的 {len(foods)} 种食材，我为您设计了一些创意组合，让剩余食材焕发新生！",
+                "custom": f"根据您的需求「{custom_requirement}」，我为您推荐以下菜谱："
             }
             
             recipe_dicts = []
@@ -164,7 +167,7 @@ async def recommend_recipes(
             
         except Exception as ai_error:
             logger.warning(f"AI服务调用失败，使用模拟数据: {ai_error}")
-            mock_result = get_mock_recipes_by_scenario(scenario, foods, expiring_foods)
+            mock_result = get_mock_recipes_by_scenario(scenario, foods, expiring_foods, custom_requirement)
             
             from app.models.recipe import Recipe
             for r in mock_result.get("recipes", []):
@@ -194,8 +197,67 @@ async def recommend_recipes(
         )
 
 
-def get_mock_recipes_by_scenario(scenario: str, foods: list, expiring_foods: list) -> dict:
+def get_mock_recipes_by_scenario(scenario: str, foods: list, expiring_foods: list, custom_requirement: str = "") -> dict:
     """根据场景返回模拟食谱数据"""
+    if scenario == "custom":
+        return {
+            "success": True,
+            "scenario": scenario,
+            "message": f"根据您的需求「{custom_requirement}」，我为您推荐以下菜谱：",
+            "count": 3,
+            "recipes": [
+                {
+                    "id": 1,
+                    "name": "家常快手菜",
+                    "description": "简单易做，满足您的需求",
+                    "cookingTime": 20,
+                    "difficulty": "简单",
+                    "servings": 2,
+                    "ingredients": [{"name": f, "amount": "适量", "have": True} for f in foods[:3]],
+                    "steps": [
+                        "准备食材",
+                        "清洗切配",
+                        "热锅下油",
+                        "翻炒调味",
+                        "出锅装盘"
+                    ],
+                    "tags": ["家常", "自定义"]
+                },
+                {
+                    "id": 2,
+                    "name": "营养餐",
+                    "description": "营养均衡，健康美味",
+                    "cookingTime": 25,
+                    "difficulty": "中等",
+                    "servings": 2,
+                    "ingredients": [{"name": f, "amount": "适量", "have": True} for f in foods[2:5] if foods],
+                    "steps": [
+                        "准备食材",
+                        "腌制肉类",
+                        "热锅翻炒",
+                        "勾芡出锅"
+                    ],
+                    "tags": ["营养", "自定义"]
+                },
+                {
+                    "id": 3,
+                    "name": "创意料理",
+                    "description": "发挥创意，美味升级",
+                    "cookingTime": 30,
+                    "difficulty": "中等",
+                    "servings": 2,
+                    "ingredients": [{"name": f, "amount": "适量", "have": True} for f in foods[:2]],
+                    "steps": [
+                        "创意搭配食材",
+                        "特殊处理",
+                        "精心烹饪",
+                        "摆盘装饰"
+                    ],
+                    "tags": ["创意", "自定义"]
+                }
+            ]
+        }
+    
     scenario_data = {
         "quick": {
             "message": f"今天冰箱里有 {len(foods)} 种食材，我为您挑选了3道快手菜！",

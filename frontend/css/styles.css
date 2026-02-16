@@ -857,6 +857,10 @@ img {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top);
+}
+
 .stagger-list {
   contain: layout style;
 }

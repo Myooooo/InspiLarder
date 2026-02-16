@@ -259,6 +259,7 @@ class AIService:
         ingredients: List[str],
         expiring_ingredients: Optional[List[str]] = None,
         scenario: str = "creative",
+        custom_requirement: str = "",
         count: int = 3,
     ) -> List[RecipeRecommendation]:
         """
@@ -267,7 +268,8 @@ class AIService:
         Args:
             ingredients: 可用食材列表
             expiring_ingredients: 即将过期的食材列表
-            scenario: 场景类型 (quick-快手, expiring-消耗, creative-创意)
+            scenario: 场景类型 (quick-快手, expiring-消耗, creative-创意, custom-自定义)
+            custom_requirement: 自定义需求描述
             count: 推荐数量
             
         Returns:
@@ -289,7 +291,8 @@ class AIService:
         scenario_instructions = {
             "quick": "\n要求：烹饪时间必须在15分钟以内，步骤要简单",
             "expiring": "\n要求：必须优先使用即将过期的食材，可以是一次性消耗多种食材的大锅菜",
-            "creative": "\n要求：尝试不同菜系的混搭，或者创新的烹饪方法"
+            "creative": "\n要求：尝试不同菜系的混搭，或者创新的烹饪方法",
+            "custom": f"\n要求：{custom_requirement}"
         }
         user_prompt += scenario_instructions.get(scenario, "")
         
