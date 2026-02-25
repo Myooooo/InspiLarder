@@ -238,6 +238,8 @@ class FoodItemUpdate(BaseModel):
     purchase_date: Optional[date] = None
     expiry_date: Optional[date] = None
     is_opened: Optional[bool] = None
+    is_finished: Optional[bool] = None
+    finished_at: Optional[datetime] = None
     reminder_days: Optional[int] = Field(default=None, ge=0)
     image_url: Optional[str] = Field(default=None, max_length=500)
     notes: Optional[str] = Field(default=None, max_length=2000)
@@ -295,6 +297,11 @@ class FoodItemResponse(BaseModel):
     days_until_expiry: Optional[int] = None
     expiry_status: Optional[str] = None
     category_display: Optional[str] = None
+    
+    # 位置字段
+    location_name: Optional[str] = None
+    parent_location_name: Optional[str] = None
+    location_icon: Optional[str] = None
 
 
 class FoodItemListResponse(BaseModel):

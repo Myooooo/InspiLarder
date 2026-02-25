@@ -688,6 +688,7 @@ const ui = {
         const remainingDays = utils.getRemainingDays(food.expiry_date);
         const isExpiringSoon = remainingDays !== null && remainingDays <= 3 && remainingDays >= 0;
         const isExpired = remainingDays !== null && remainingDays < 0;
+        const isFinished = food.is_finished;
         
         let statusClass = 'border-l-4 border-green-400';
         let statusBg = 'bg-green-50';
@@ -705,14 +706,27 @@ const ui = {
         
         const daysText = remainingDays !== null 
             ? remainingDays < 0 
-                ? `已过期 ${Math.abs(remainingDays)} 天`
+                ? `过期 ${Math.abs(remainingDays)} 天`
                 : remainingDays === 0 
                     ? '今天到期'
                     : `还剩 ${remainingDays} 天`
             : '-';
         
+        let locationDisplay = '';
+        if (food.location_name) {
+            if (food.parent_location_name) {
+                locationDisplay = `${food.parent_location_name} - ${food.location_name}`;
+            } else {
+                locationDisplay = food.location_name;
+            }
+        }
+        
+        const locationEmoji = food.location_icon || '📍';
+        
+        const cardClass = isFinished ? `${statusClass} bg-gray-50 opacity-60 rounded-xl p-4 cursor-pointer hover:shadow-md transition-all` : `food-card ${statusClass} ${statusBg} rounded-xl p-4 cursor-pointer hover:shadow-md transition-all`;
+        
         return `
-            <div class="food-card ${statusClass} ${statusBg} rounded-xl p-4 cursor-pointer hover:shadow-md transition-all" onclick="app.showFoodDetail(${food.id})" data-food-id="${food.id}">
+            <div class="${cardClass}" onclick="app.showFoodDetail(${food.id})" data-food-id="${food.id}">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-2xl shadow-sm">
                         ${food.icon || utils.getCategoryIcon(food.category)}
@@ -725,8 +739,21 @@ const ui = {
                             </span>
                             ${food.quantity ? `<span class="text-gray-400">· ${Math.round(food.quantity)}${food.unit || ''}</span>` : ''}
                         </div>
+                        ${locationDisplay ? `<div class="text-xs text-gray-400 mt-1">${locationEmoji} ${locationDisplay}</div>` : ''}
                     </div>
-                    ${food.location_name ? `<span class="text-xs px-2 py-1 bg-white rounded-lg text-gray-500 border border-gray-100">${food.location_name}</span>` : ''}
+                    ${isFinished 
+                        ? `<button onclick="event.stopPropagation(); app.unconsumeFood(${food.id})" class="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition-colors" title="撤销消耗">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                                <path d="M9 14L4 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>`
+                        : `<button onclick="event.stopPropagation(); app.consumeFood(${food.id})" class="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors" title="标记已消耗">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,23a10.927,10.927,0,0,0,7.778-3.222,1,1,0,0,0,0-1.414L13.414,12l6.364-6.364a1,1,0,0,0,0-1.414A11,11,0,1,0,12,23ZM12,3a8.933,8.933,0,0,1,5.618,1.967l-6.325,6.326a1,1,0,0,0,0,1.414l6.325,6.326A9,9,0,1,1,12,3Zm11,9a2,2,0,1,1-2-2A2,2,0,0,1,23,12ZM8,7a2,2,0,1,1,2,2A2,2,0,0,1,8,7Z"/>
+                            </svg>
+                        </button>`
+                    }
                 </div>
             </div>
         `;
@@ -1090,10 +1117,10 @@ const app = {
                         <div class="stat-card-value">${state.locations?.length || 0}</div>
                         <div class="stat-card-label">储存空间</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-card-icon stat-card-icon-orange">📅</div>
-                        <div class="stat-card-value">${new Date().getMonth() + 1}月</div>
-                        <div class="stat-card-label">本月</div>
+                    <div class="stat-card cursor-pointer hover:shadow-md transition-shadow" onclick="app.navigateTo('recipes')">
+                        <div class="stat-card-icon stat-card-icon-orange">📖</div>
+                        <div class="stat-card-value">${state.currentRecipes?.length || 0}</div>
+                        <div class="stat-card-label">菜谱</div>
                     </div>
                 </div>
 
@@ -1148,9 +1175,32 @@ const app = {
                         </button>
                     </div>
                     <div id="food-list" class="p-4">
-                        ${state.foods?.filter(f => !f.is_finished).length > 0 
-                            ? `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-list">
-                                ${state.foods.filter(f => !f.is_finished).map(food => ui.createFoodCard(food)).join('')}
+                        ${(state.foods?.filter(f => !f.is_finished).length > 0 || state.foods?.filter(f => f.is_finished).length > 0)
+                            ? `<div class="space-y-4">
+                                ${state.foods.filter(f => !f.is_finished).length > 0 
+                                    ? `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-list">
+                                        ${state.foods.filter(f => !f.is_finished).map(food => ui.createFoodCard(food)).join('')}
+                                       </div>`
+                                    : ''
+                                }
+                                ${state.foods.filter(f => f.is_finished).length > 0 
+                                    ? `<div class="mt-6 pt-4 border-t border-gray-200">
+                                        <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            已消耗 (${state.foods.filter(f => f.is_finished).length})
+                                        </h3>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-list opacity-60">
+                                            ${state.foods.filter(f => f.is_finished).sort((a, b) => {
+                                                const dateA = a.finished_at ? new Date(a.finished_at) : new Date(0);
+                                                const dateB = b.finished_at ? new Date(b.finished_at) : new Date(0);
+                                                return dateB - dateA;
+                                            }).map(food => ui.createFoodCard(food)).join('')}
+                                        </div>
+                                       </div>`
+                                    : ''
+                                }
                                </div>`
                             : `<div class="empty-state">
                                 <div class="empty-state-icon">🍽️</div>
@@ -2334,13 +2384,14 @@ const app = {
         
         try {
             const [foodsData, locationsData, recipesData] = await Promise.all([
-                api.get('/food').catch(() => ({ items: [] })),
+                api.get('/food?include_finished=true&page_size=100').catch(() => ({ items: [] })),
                 api.get('/locations').catch(() => ({ items: [] })),
                 api.get('/recipes?page=1&page_size=1').catch(() => ({ total: 0 }))
             ]);
             
             state.foods = foodsData?.items || [];
             state.locations = locationsData?.items || [];
+            state.currentRecipes = recipesData?.items || [];
             state.recipeCount = recipesData?.total || 0;
             
             const recipeCountEl = document.getElementById('recipe-count');
@@ -2523,6 +2574,46 @@ const app = {
             this.renderPage('home');
         } catch (error) {
             ui.toast('删除失败: ' + error.message, 'error');
+        }
+    },
+
+    async consumeFood(foodId) {
+        const confirmed = await ui.confirm({
+            title: '标记已消耗',
+            message: '确定要将这个食材标记为已消耗吗？',
+            type: 'info',
+            icon: '🔥'
+        });
+
+        if (!confirmed) return;
+
+        try {
+            await api.post(`/food/${foodId}/consume`, {});
+            ui.toast('已标记为已消耗', 'success');
+            await this.loadInitialData();
+            this.renderPage('home');
+        } catch (error) {
+            ui.toast('操作失败: ' + error.message, 'error');
+        }
+    },
+
+    async unconsumeFood(foodId) {
+        const confirmed = await ui.confirm({
+            title: '撤销消耗',
+            message: '确定要撤销这个食材的消耗状态吗？',
+            type: 'info',
+            icon: '↩️'
+        });
+
+        if (!confirmed) return;
+
+        try {
+            await api.put(`/food/${foodId}`, { is_finished: false, finished_at: null });
+            ui.toast('已撤销消耗状态', 'success');
+            await this.loadInitialData();
+            this.renderPage('home');
+        } catch (error) {
+            ui.toast('操作失败: ' + error.message, 'error');
         }
     },
 

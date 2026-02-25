@@ -39,13 +39,14 @@ async def get_food_items(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page_size: int = Query(100, ge=1, le=100, description="每页数量"),
     location_id: Optional[int] = Query(None, description="按空间筛选"),
     category: Optional[str] = Query(None, description="按分类筛选"),
     status: Optional[str] = Query(None, description="状态筛选: fresh, expiring_soon, expired"),
     search: Optional[str] = Query(None, description="搜索关键词"),
     sort_by: str = Query("created_at", description="排序字段"),
     sort_order: str = Query("desc", description="排序方向: asc, desc"),
+    include_finished: bool = Query(False, description="是否包含已消耗的食材"),
 ) -> Any:
     """
     获取食物列表
@@ -57,14 +58,20 @@ async def get_food_items(
     - **search**: 搜索食物名称和描述
     - **sort_by**: 排序字段 (created_at, expiry_date, name)
     - **sort_order**: 排序方向 (asc, desc)
+    - **include_finished**: 是否包含已消耗的食材
     """
     # 构建基础查询
-    query = select(FoodItem).where(
-        and_(
+    if include_finished:
+        query = select(FoodItem).where(
             FoodItem.user_id == current_user.id,
-            FoodItem.is_finished == False,
         )
-    )
+    else:
+        query = select(FoodItem).where(
+            and_(
+                FoodItem.user_id == current_user.id,
+                FoodItem.is_finished == False,
+            )
+        )
     
     # 应用筛选条件
     if location_id:
@@ -120,15 +127,64 @@ async def get_food_items(
         items = [item for item in items if item.expiry_status == status]
         total = len(items)
     
+    # 加载位置信息（包括父级位置）
+    location_map = {}
+    for item in items:
+        if item.location_id:
+            location_map[item.location_id] = None
+    
+    if location_map:
+        location_ids = list(location_map.keys())
+        location_result = await db.execute(
+            select(Location).where(Location.id.in_(location_ids))
+        )
+        locations = location_result.scalars().all()
+        
+        # 获取所有父级位置
+        parent_ids = [loc.parent_id for loc in locations if loc.parent_id]
+        if parent_ids:
+            parent_result = await db.execute(
+                select(Location).where(Location.id.in_(parent_ids))
+            )
+            parent_locations = {loc.id: loc.name for loc in parent_result.scalars().all()}
+        else:
+            parent_locations = {}
+        
+        for loc in locations:
+            location_map[loc.id] = {
+                'name': loc.name,
+                'parent_name': parent_locations.get(loc.parent_id) if loc.parent_id else None,
+                'icon': loc.icon
+            }
+    
+    # 构建包含位置信息的响应列表
+    response_items = []
+    for item in items:
+        item_dict = {
+            'location_name': None,
+            'parent_location_name': None,
+            'location_icon': None
+        }
+        if item.location_id and location_map.get(item.location_id):
+            loc_info = location_map[item.location_id]
+            item_dict['location_name'] = loc_info['name']
+            item_dict['parent_location_name'] = loc_info['parent_name']
+            item_dict['location_icon'] = loc_info['icon']
+        
+        base_dict = FoodItemResponse.model_validate(item).model_dump()
+        base_dict.update(item_dict)
+        response_item = FoodItemResponse(**base_dict)
+        response_items.append(response_item)
+    
     # 计算总页数
-    pages = (total + page_size - 1) // page_size if total > 0 else 0
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     
     return {
-        "items": items,
+        "items": response_items,
         "total": total,
         "page": page,
         "page_size": page_size,
-        "pages": pages,
+        "pages": total_pages,
     }
 
 
@@ -278,7 +334,31 @@ async def update_food_item(
     await db.commit()
     await db.refresh(food)
     
-    return food
+    item_dict = {
+        'location_name': None,
+        'parent_location_name': None,
+        'location_icon': None
+    }
+    if food.location_id:
+        location_result = await db.execute(
+            select(Location).where(Location.id == food.location_id)
+        )
+        location = location_result.scalar_one_or_none()
+        if location:
+            parent_name = None
+            if location.parent_id:
+                parent_result = await db.execute(
+                    select(Location).where(Location.id == location.parent_id)
+                )
+                parent = parent_result.scalar_one_or_none()
+                parent_name = parent.name if parent else None
+            item_dict['location_name'] = location.name
+            item_dict['parent_location_name'] = parent_name
+            item_dict['location_icon'] = location.icon
+    
+    base_dict = FoodItemResponse.model_validate(food).model_dump()
+    base_dict.update(item_dict)
+    return FoodItemResponse(**base_dict)
 
 
 @router.patch(
