@@ -299,6 +299,11 @@ img {
 .delay-500 { animation-delay: 400ms; }
 .delay-600 { animation-delay: 480ms; }
 
+@keyframes scan {
+  0%, 100% { opacity: 0.3; transform: translateY(-50px); }
+  50% { opacity: 1; transform: translateY(50px); }
+}
+
 /* ==================== AI加载动画 ==================== */
 .ai-loading-container {
   position: relative;
@@ -381,8 +386,8 @@ img {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.72) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .ai-loading-overlay.hidden {
@@ -918,4 +923,14 @@ img {
 
 .animate-toastOut {
   animation: toastFadeOut 0.2s ease forwards;
+}
+
+.backdrop-blur-sm {
+  -webkit-backdrop-filter: blur(4px) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.backdrop-blur-md {
+  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: blur(12px) !important;
 }
