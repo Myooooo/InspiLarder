@@ -986,7 +986,7 @@ const app = {
         this.updateNavState(path);
     },
 
-    renderPage(page) {
+    async renderPage(page) {
         const mainContent = document.getElementById('main-content');
         if (!mainContent) return;
         
@@ -1001,13 +1001,16 @@ const app = {
         mainContent.style.transform = 'translateY(10px)';
         mainContent.style.transition = 'all 0.3s ease';
         
-        setTimeout(() => {
+        setTimeout(async () => {
             switch (page) {
                 case 'home': mainContent.innerHTML = this.getHomePageHTML(); break;
                 case 'login': mainContent.innerHTML = this.getLoginPageHTML(); break;
                 case 'spaces': mainContent.innerHTML = this.getSpacesPageHTML(); break;
                 case 'inspiration': mainContent.innerHTML = this.getInspirationPageHTML(); break;
-                case 'profile': mainContent.innerHTML = this.getProfilePageHTML(); break;
+                case 'profile': 
+                    await this.loadInitialData();
+                    mainContent.innerHTML = this.getProfilePageHTML(); 
+                    break;
                 case 'recipes': mainContent.innerHTML = this.getRecipesPageHTML(); break;
                 default: mainContent.innerHTML = this.getHomePageHTML();
             }
@@ -1224,7 +1227,7 @@ const app = {
                         <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">储存空间</h1>
                         <p class="text-gray-500">管理您的冰箱、橱柜等储存位置</p>
                     </div>
-                    <button onclick="app.showCreateLocationModal()" class="btn btn-primary">
+                    <button onclick="app.showCreateLocationModal()" class="btn btn-primary text-sm py-2 px-4 whitespace-nowrap">
                         <i data-lucide="plus" class="w-4 h-4"></i>
                         新建空间
                     </button>
@@ -1235,7 +1238,7 @@ const app = {
                         <div class="empty-state-icon">🏠</div>
                         <h3 class="empty-state-title">还没有储存空间</h3>
                         <p class="empty-state-text mb-6">创建您的第一个储存空间，比如"冰箱"、"储藏室"</p>
-                        <button onclick="app.showCreateLocationModal()" class="btn btn-primary">
+                        <button onclick="app.showCreateLocationModal()" class="btn btn-primary text-sm py-2 px-4 whitespace-nowrap">
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             创建第一个空间
                         </button>
