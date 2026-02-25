@@ -100,6 +100,7 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(..., description="用户ID")
+    nickname: Optional[str] = Field(default=None, description="昵称")
     role: str = Field(default="user", description="用户角色")
     is_active: bool = Field(default=True, description="账户是否激活")
     is_superuser: bool = Field(default=False, description="是否为管理员")

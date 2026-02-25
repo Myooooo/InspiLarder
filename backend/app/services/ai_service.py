@@ -24,10 +24,12 @@ class FoodRecognitionResult:
     icon: Optional[str] = None
     description: Optional[str] = None
     expiry_days: Optional[int] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
-        return {
+        result = {
             "name": self.name,
             "icon": self.icon,
             "category": self.category,
@@ -35,6 +37,11 @@ class FoodRecognitionResult:
             "description": self.description,
             "expiry_days": self.expiry_days,
         }
+        if self.quantity is not None:
+            result["quantity"] = self.quantity
+        if self.unit is not None:
+            result["unit"] = self.unit
+        return result
 
 
 @dataclass
@@ -175,6 +182,8 @@ class AIService:
                         confidence=item.get("confidence", 0.8),
                         description=item.get("description"),
                         expiry_days=item.get("expiry_days"),
+                        quantity=item.get("quantity", 1),
+                        unit=item.get("unit", "个"),
                     )
                 )
             
@@ -409,7 +418,9 @@ class AIService:
             "category": "分类（vegetable/fruit/meat/seafood/dairy/grain/snack/drink/condiment/other）",
             "confidence": 0.95,
             "description": "简短描述（可选）",
-            "expiry_days": 7
+            "expiry_days": 7,
+            "quantity": 1,
+            "unit": "个"
         }
     ]
 }
@@ -420,6 +431,8 @@ class AIService:
 - 如果有多种食物或是一道菜，则识别出菜品名称，并在description中列出主要食材
 - confidence 是 0-1 之间的置信度
 - expiry_days 是保质期，如果包装上有可见的保质期则填入，否则提供建议的保质期（天），如果不确定可以留空
+- quantity 是数量，根据图片中食物的数量或包装上的数量填写，默认1
+- unit 是单位，常用单位包括：个、克、千克、升、毫升、盒、瓶、包、袋、斤等，根据实际情况选择
 - 只返回JSON，不要添加其他说明文字
 """
     
@@ -460,6 +473,8 @@ class AIService:
                 confidence=0.95,
                 description="新鲜的红苹果",
                 expiry_days=14,
+                quantity=3,
+                unit="个",
             ),
             FoodRecognitionResult(
                 name="香蕉",
@@ -468,6 +483,8 @@ class AIService:
                 confidence=0.92,
                 description="黄色的香蕉",
                 expiry_days=5,
+                quantity=6,
+                unit="个",
             ),
             FoodRecognitionResult(
                 name="鸡蛋",
@@ -476,6 +493,8 @@ class AIService:
                 confidence=0.90,
                 description="新鲜的鸡蛋",
                 expiry_days=21,
+                quantity=12,
+                unit="个",
             ),
             FoodRecognitionResult(
                 name="白菜",
@@ -484,6 +503,8 @@ class AIService:
                 confidence=0.88,
                 description="新鲜的白菜",
                 expiry_days=7,
+                quantity=1,
+                unit="个",
             ),
             FoodRecognitionResult(
                 name="牛奶",
@@ -492,6 +513,8 @@ class AIService:
                 confidence=0.85,
                 description="新鲜的牛奶",
                 expiry_days=7,
+                quantity=1,
+                unit="盒",
             ),
         ]
     

@@ -547,13 +547,13 @@ const ui = {
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.id = `field-${field.name}`;
-                    input.className = 'w-16 h-12 px-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-center text-2xl flex-shrink-0';
+                    input.className = 'w-16 px-2 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-center flex-shrink-0';
                     input.value = field.value || '📦';
                     input.readOnly = true;
                     
                     const btn = document.createElement('button');
                     btn.type = 'button';
-                    btn.className = 'flex-1 px-3 py-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-200 hover:bg-orange-100 transition-colors text-sm font-medium';
+                    btn.className = 'flex-1 h-10 px-3 bg-orange-50 text-orange-600 rounded-xl border border-orange-200 hover:bg-orange-100 transition-colors text-sm font-medium flex items-center justify-center';
                     btn.textContent = '选择图标';
                     btn.onclick = async () => {
                         const emoji = await ui.emojiPicker.show({ context: field.context || 'food' });
@@ -671,8 +671,13 @@ const ui = {
                 expiryInput.addEventListener('change', updateRemainingDays);
                 remainingDaysInput.addEventListener('input', updateExpiryDate);
 
-                // Initialize
-                updateRemainingDays();
+                // Initialize with default value if specified
+                if (expiryField.defaultRemainingDays !== undefined) {
+                    remainingDaysInput.value = expiryField.defaultRemainingDays;
+                    updateExpiryDate();
+                } else {
+                    updateRemainingDays();
+                }
             }
 
             // Remove existing listeners to avoid duplicates if reused (though elements are static, logic rebinds)
@@ -2022,7 +2027,7 @@ const app = {
                     units: ['个', '克', '千克', '升', '毫升', '盒', '瓶', '包', '袋', '斤'], 
                     unitName: 'unit' 
                 },
-                { name: 'expiry_date', label: '保质期', type: 'date' },
+                { name: 'expiry_date', label: '保质期', type: 'date', defaultRemainingDays: 3 },
                 { name: 'is_opened', label: '已开封', type: 'checkbox', value: false },
                 { name: 'notes', label: '备注', type: 'textarea' }
             ]
@@ -2044,8 +2049,6 @@ const app = {
             ui.toast('添加失败: ' + error.message, 'error');
         }
     },
-
-
 
     async handleVoiceInput() {
         ui.confirm({
@@ -2169,8 +2172,8 @@ const app = {
                         name: recognition.name,
                         category: recognition.category,
                         icon: recognition.icon || utils.getCategoryIcon(recognition.category),
-                        quantity: 1,
-                        unit: '个',
+                        quantity: recognition.quantity || 1,
+                        unit: recognition.unit || '个',
                         expiry_date: recognition.expiry_days 
                             ? new Date(Date.now() + recognition.expiry_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
                             : null,
