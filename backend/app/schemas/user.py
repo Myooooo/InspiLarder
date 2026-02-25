@@ -134,6 +134,16 @@ class UserUpdate(BaseModel):
         default=None,
         description="新邮箱地址",
     )
+    nickname: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="新昵称",
+    )
+    password: Optional[str] = Field(
+        default=None,
+        min_length=6,
+        description="新密码",
+    )
     
     @field_validator("username")
     @classmethod

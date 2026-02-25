@@ -25,11 +25,36 @@ from app.schemas.user import (
     UserResponse,
     Token,
     UserLogin,
+    UserUpdate,
 )
 from app.api.deps import get_current_user
 
-# 创建路由
 router = APIRouter(tags=["认证"])
+
+@router.put(
+    "/me",
+    response_model=UserResponse,
+    summary="更新当前用户信息",
+    description="更新当前登录用户的资料（昵称、密码等）",
+)
+async def update_current_user(
+    user_data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    更新当前用户信息
+    """
+    if user_data.nickname is not None:
+        current_user.nickname = user_data.nickname
+    
+    if user_data.password:
+        current_user.hashed_password = get_password_hash(user_data.password)
+    
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return current_user
 
 # 安全方案
 security = HTTPBearer()
@@ -426,11 +451,26 @@ async def refresh_token(
         },
     )
     
+    # 包含最新用户数据
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+        "nickname": user.nickname,
+        "avatar": user.avatar,
+        "is_active": bool(user.is_active),
+        "is_superuser": user.role == "admin",
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+        "last_login": user.last_login.isoformat() if user.last_login else None,
+    }
+    
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "expires_in": settings.access_token_expire_minutes * 60,
-        "user": user.to_dict(),
+        "user": user_data,
     }
 
 

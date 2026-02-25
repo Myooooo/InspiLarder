@@ -1125,7 +1125,7 @@ const app = {
                     <div class="stat-card cursor-pointer hover:shadow-md transition-shadow" onclick="app.navigateTo('recipes')">
                         <div class="stat-card-icon stat-card-icon-orange">📖</div>
                         <div class="stat-card-value">${state.recipeCount || 0}</div>
-                        <div class="stat-card-label">菜谱</div>
+                        <div class="stat-card-label">灵感菜谱</div>
                     </div>
                 </div>
 
@@ -1655,6 +1655,10 @@ const app = {
                 </div>
                 
                 <div class="space-y-3">
+                    <button onclick="app.showEditProfileModal()" class="w-full py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                        账号设置
+                    </button>
                     ${user.role === 'admin' ? `
                         <button onclick="app.showAdminPanel()" class="w-full py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium">
                             <i data-lucide="users" class="w-5 h-5"></i>
@@ -1688,7 +1692,7 @@ const app = {
                 <div class="flex items-center justify-between mb-6">
                     <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                         <i data-lucide="chef-hat" class="w-7 h-7 text-orange-500"></i>
-                        我的菜谱
+                        灵感菜谱
                     </h1>
                 </div>
                 
@@ -2365,6 +2369,45 @@ const app = {
         this.updateUserUI();
         this.navigateTo('home');
         ui.toast('已安全退出');
+    },
+
+    async showEditProfileModal() {
+        const user = state.currentUser;
+        if (!user) return;
+
+        const result = await ui.showEditModal({
+            title: '账号设置',
+            icon: '⚙️',
+            fields: [
+                { name: 'nickname', label: '昵称', value: user.nickname || '' },
+                { name: 'password', label: '新密码', type: 'password', placeholder: '不修改请留空' }
+            ]
+        });
+
+        if (!result) return;
+
+        try {
+            const updateData = {
+                username: result.username,
+                email: result.email || null,
+                nickname: result.nickname || null,
+            };
+            
+            if (result.password) {
+                updateData.password = result.password;
+            }
+
+            const updatedUser = await api.put('/auth/me', updateData);
+            
+            // 更新本地状态
+            state.currentUser = updatedUser;
+            localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(updatedUser));
+            
+            ui.toast('个人资料已更新', 'success');
+            this.renderPage('profile');
+        } catch (error) {
+            ui.toast('更新失败: ' + error.message, 'error');
+        }
     },
 
     getLoginPromptHTML() {
