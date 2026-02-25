@@ -1124,7 +1124,7 @@ const app = {
                     </div>
                     <div class="stat-card cursor-pointer hover:shadow-md transition-shadow" onclick="app.navigateTo('recipes')">
                         <div class="stat-card-icon stat-card-icon-orange">📖</div>
-                        <div class="stat-card-value">${state.currentRecipes?.length || 0}</div>
+                        <div class="stat-card-value">${state.recipeCount || 0}</div>
                         <div class="stat-card-label">菜谱</div>
                     </div>
                 </div>
