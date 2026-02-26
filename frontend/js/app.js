@@ -29,7 +29,7 @@ const state = {
     locations: [],
     currentRecipes: [],
     selectedImage: null,
-    aiLoadingTexts: ['正在分析图片...', '识别食物中...', '提取信息中...', '即将完成...'],
+    aiLoadingTexts: ['正在分析图片', '正在识别食物', '正在提取信息', '即将完成'],
     categories: [
         { id: 'vegetable', name: '新鲜蔬菜', icon: '🥬' },
         { id: 'fruit', name: '时令水果', icon: '🍎' },
@@ -1656,7 +1656,7 @@ const app = {
                     </div>
                     <button onclick="app.navigateTo('recipes')" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
                         <i data-lucide="book-open" class="w-4 h-4"></i>
-                        查看菜谱
+                        历史菜谱
                     </button>
                 </div>
 
@@ -2255,7 +2255,7 @@ const app = {
             <div class="space-y-4">
                 ${activeFoods.length > 0 
                     ? `<div>
-                        <h3 class="text-sm font-medium text-gray-500 mb-3">食材 (${activeFoods.length})</h3>
+                        <h3 class="text-sm font-medium text-gray-500 mb-3">库存中 (${activeFoods.length})</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             ${activeFoods.map(food => this.createFoodCardWithCheckbox(food)).join('')}
                         </div>
@@ -2265,9 +2265,6 @@ const app = {
                 ${finishedFoods.length > 0 
                     ? `<div class="mt-6 pt-4 border-t border-gray-200">
                         <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
                             已消耗 (${finishedFoods.length})
                         </h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
@@ -2836,7 +2833,7 @@ const app = {
     },
 
     async handleVoiceRecognition(text) {
-        this.showAILoading('正在理解您的描述...');
+        this.showAILoading('正在解析语音');
         
         try {
             // 模拟AI解析
@@ -2924,7 +2921,7 @@ const app = {
             return;
         }
 
-        this.showAILoading('正在分析图片...');
+        this.showAILoading('正在分析图片');
 
         try {
             // 压缩图片
@@ -2935,7 +2932,7 @@ const app = {
             formData.append('image', compressedImage, 'food.jpg');
 
             // 调用AI识别API
-            this.updateAILoadingText('识别食物中...');
+            this.updateAILoadingText('正在识别食物');
             
             try {
                 const result = await api.upload('/ai/recognize', formData);
@@ -3577,7 +3574,7 @@ const app = {
             return days !== null && days <= 3;
         });
 
-        this.showAILoading('正在生成菜谱...');
+        this.showAILoading('正在生成菜谱');
 
         try {
             const result = await api.post('/ai/recipes', {
@@ -3616,7 +3613,7 @@ const app = {
             return days !== null && days <= 3;
         });
 
-        this.showAILoading('正在生成菜谱...');
+        this.showAILoading('正在生成菜谱');
 
         try {
             const result = await api.post('/ai/recipes', {
