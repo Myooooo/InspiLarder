@@ -1187,8 +1187,8 @@ const app = {
                                     ${state.foods.filter(f => !f.is_finished).slice(0, 10).map(food => ui.createFoodCard(food)).join('')}
                                 </div>
                                 <button onclick="app.navigateTo('foods')" class="w-full mt-4 py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-orange-400 hover:text-orange-500 transition-colors flex items-center justify-center gap-2">
-                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                                    查看全部 (${state.foods.filter(f => !f.is_finished).length})
+                                    查看全部
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
                                 </button>
                                </div>`
                             : `<div class="empty-state">
@@ -1293,7 +1293,7 @@ const app = {
                             批量管理
                         </button>
                         <button id="foods-batch-actions" onclick="app.showFoodsBatchActions()" class="hidden px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-xl text-sm shadow-md shadow-orange-200 hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer">
-                            <i data-lucide="actions" class="w-4 h-4"></i>
+                            <i data-lucide="axe" class="w-4 h-4"></i>
                             批量操作
                         </button>
                     </div>
@@ -2390,7 +2390,7 @@ const app = {
                     <p class="text-gray-600 mb-4">已选择 <strong>${selectedIds.length}</strong> 个食材</p>
                     <button onclick="app.batchConsumeFoods([${selectedIds}])" class="w-full py-3 bg-orange-100 text-orange-700 rounded-xl hover:bg-orange-200 transition-colors flex items-center justify-center gap-2 font-medium">
                         <i data-lucide="check-circle" class="w-5 h-5"></i>
-                        标记为已消耗
+                        标记消耗
                     </button>
                     <button onclick="app.batchDeleteFoods([${selectedIds}])" class="w-full py-3 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors flex items-center justify-center gap-2 font-medium">
                         <i data-lucide="trash-2" class="w-5 h-5"></i>
@@ -2398,7 +2398,7 @@ const app = {
                     </button>
                     <button onclick="app.showBatchMoveFoodsModal([${selectedIds}])" class="w-full py-3 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors flex items-center justify-center gap-2 font-medium">
                         <i data-lucide="folder" class="w-5 h-5"></i>
-                        移动到空间
+                        移动到空间...
                     </button>
                 </div>
             </div>
