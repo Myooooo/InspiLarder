@@ -341,7 +341,7 @@ class AIService:
         {
             "name": "食物名称（中文）",
             "icon": "推荐的相关Emoji图标，如🍎、🥬、🥩等",
-            "category": "分类（vegetable/fruit/meat/seafood/dairy/grain/snack/drink/condiment/prepared/other）",
+            "category": "分类（vegetable/fruit/meat/seafood/dairy/grain/snack/drink/condiment/prepared/cooked_meat/other）",
             "confidence": 0.95,
             "description": "简短描述（可选）",
             "expiry_days": 7,
@@ -358,7 +358,7 @@ class AIService:
 - confidence 是 0-1 之间的置信度
 - expiry_days 是保质期，如果包装上有可见的保质期则填入，否则提供建议的保质期（天），如果不确定可以留空
 - quantity 是数量，根据图片中食物的数量或包装上的数量填写，默认1
-- unit 是单位，常用单位包括：个、克、千克、升、毫升、盒、瓶、包、袋、斤等，根据实际情况选择
+- unit 是单位，可以是以下选项：['个', '克', '千克', '升', '毫升', '盒', '瓶', '包', '袋', '斤', '盘', '碗', '份']，根据图片中食物的实际情况填写，默认'个'
 - 只返回JSON，不要添加其他说明文字
 """
     
@@ -414,6 +414,26 @@ class AIService:
                 expiry_days=7,
                 quantity=1,
                 unit="盒",
+            ),
+            FoodRecognitionResult(
+                name="红烧肉",
+                icon="🍱",
+                category="prepared",
+                confidence=0.92,
+                description="美味的红烧肉",
+                expiry_days=2,
+                quantity=1,
+                unit="份",
+            ),
+            FoodRecognitionResult(
+                name="烤鸡翅",
+                icon="🍖",
+                category="cooked_meat",
+                confidence=0.90,
+                description="香喷喷的烤鸡翅",
+                expiry_days=3,
+                quantity=4,
+                unit="个",
             ),
         ]
     

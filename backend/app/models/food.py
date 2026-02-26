@@ -104,7 +104,7 @@ class FoodItem(Base, TimestampMixin):
         String(20),
         nullable=False,
         default="个",
-        comment="单位: 个, 克, 千克, 升, 毫升, 盒, 瓶, 包, 袋, 其他",
+        comment="单位: ['个', '克', '千克', '升', '毫升', '盒', '瓶', '包', '袋', '斤', '盘', '碗', '份']",
     )
     
     # 位置关联
@@ -271,6 +271,8 @@ class FoodItem(Base, TimestampMixin):
             "snack": "零食",
             "drink": "饮料",
             "condiment": "调味品",
+            "prepared": "成品菜肴",
+            "cooked_meat": "熟食肉类",
             "other": "其他",
         }
         return category_names.get(self.category, "其他")

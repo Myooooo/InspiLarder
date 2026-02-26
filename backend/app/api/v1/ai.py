@@ -507,6 +507,7 @@ async def get_food_categories() -> Any:
         {"id": "drink", "name": "饮料", "icon": "🥤"},
         {"id": "condiment", "name": "调味品", "icon": "🧂"},
         {"id": "prepared", "name": "成品菜肴", "icon": "🍱"},
+        {"id": "cooked_meat", "name": "熟食肉类", "icon": "🍖"},
         {"id": "other", "name": "其他", "icon": "📦"},
     ]
     

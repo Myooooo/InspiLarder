@@ -41,6 +41,7 @@ const state = {
         { id: 'snack', name: '零食饮料', icon: '🍿' },
         { id: 'frozen', name: '冷冻食品', icon: '🧊' },
         { id: 'prepared', name: '成品菜肴', icon: '🍱' },
+        { id: 'cooked_meat', name: '熟食肉类', icon: '🍖' },
         { id: 'other', name: '其他', icon: '📦' }
     ]
 };
@@ -2794,7 +2795,7 @@ const app = {
                     label: '数量', 
                     type: 'combined', 
                     value: {value: 1, unit: '个'}, 
-                    units: ['个', '克', '千克', '升', '毫升', '盒', '瓶', '包', '袋', '斤'], 
+                    units: ['个', '克', '千克', '升', '毫升', '盒', '瓶', '包', '袋', '斤', '盘', '碗', '份'], 
                     unitName: 'unit' 
                 },
                 { name: 'expiry_date', label: '保质期', type: 'date', defaultRemainingDays: 3 },
@@ -2938,9 +2939,27 @@ const app = {
                 
                 if (result.success && result.results && result.results.length > 0) {
                     const recognition = result.results[0];
+                    
+                    let category = recognition.category?.toLowerCase().trim();
+                    const categoryMap = {
+                        'vegetable': 'vegetable', '蔬菜': 'vegetable',
+                        'fruit': 'fruit', '水果': 'fruit',
+                        'meat': 'meat', '肉类': 'meat', '生鲜肉类': 'meat',
+                        'seafood': 'seafood', '海鲜': 'seafood',
+                        'dairy': 'dairy', '蛋奶': 'dairy', '乳制品': 'dairy',
+                        'grain': 'grain', '米面': 'grain', '粮油': 'grain',
+                        'snack': 'snack', '零食': 'snack', '饮料': 'snack',
+                        'condiment': 'condiment', '调味品': 'condiment',
+                        'frozen': 'frozen', '冷冻': 'frozen',
+                        'prepared': 'prepared', '成品': 'prepared', '成品菜肴': 'prepared', '外卖': 'prepared', '剩菜': 'prepared',
+                        'cooked_meat': 'cooked_meat', '熟食': 'cooked_meat', '熟肉': 'cooked_meat',
+                        'other': 'other', '其他': 'other'
+                    };
+                    category = categoryMap[category] || 'other';
+                    
                     this.showAIResultEditor({
                         name: recognition.name,
-                        category: recognition.category,
+                        category: category,
                         icon: recognition.icon || utils.getCategoryIcon(recognition.category),
                         quantity: recognition.quantity || 1,
                         unit: recognition.unit || '个',
@@ -3034,10 +3053,24 @@ const app = {
 
     async handleSaveFood() {
         const name = document.getElementById('edit-name')?.value;
-        const category = document.getElementById('edit-category')?.value;
+        const categorySelect = document.getElementById('edit-category');
+        let category = categorySelect?.value;
+        
+        const validCategories = ['vegetable', 'fruit', 'meat', 'seafood', 'dairy', 'condiment', 'grain', 'snack', 'frozen', 'prepared', 'cooked_meat', 'other'];
+        if (!category || !validCategories.includes(category)) {
+            category = 'other';
+            if (categorySelect) categorySelect.value = category;
+        }
+        
         const locationId = document.getElementById('edit-location')?.value;
         const quantity = document.getElementById('edit-quantity')?.value;
-        const unit = document.getElementById('edit-unit')?.value;
+        let unit = document.getElementById('edit-unit')?.value;
+        
+        const validUnits = ['个', '克', '千克', '升', '毫升', '盒', '瓶', '包', '袋', '斤', '盘', '碗', '份'];
+        if (!unit || !validUnits.includes(unit)) {
+            unit = '个';
+        }
+        
         const expiryDate = document.getElementById('edit-expiry')?.value;
         const isOpened = document.getElementById('edit-opened')?.checked;
         const notes = document.getElementById('edit-notes')?.value;
@@ -3492,7 +3525,7 @@ const app = {
                     label: '数量', 
                     type: 'combined', 
                     value: {value: food.quantity, unit: food.unit}, 
-                    units: ['个', '克', '千克', '升', '毫升', '盒', '瓶', '包', '袋', '斤'], 
+                    units: ['个', '克', '千克', '升', '毫升', '盒', '瓶', '包', '袋', '斤', '盘', '碗', '份'], 
                     unitName: 'unit' 
                 },
                 { name: 'expiry_date', label: '保质期', type: 'date', value: food.expiry_date },

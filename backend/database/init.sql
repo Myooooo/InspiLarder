@@ -56,7 +56,7 @@ CREATE TABLE locations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='储存空间表';
 
 -- ============================================
--- 3. 食物记录表 (food_items) - 增强版
+-- 3. 食物记录表 (food_items) 
 -- ============================================
 CREATE TABLE food_items (
     id INT PRIMARY KEY AUTO_INCREMENT,
