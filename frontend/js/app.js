@@ -40,6 +40,7 @@ const state = {
         { id: 'grain', name: '米面粮油', icon: '🍚' },
         { id: 'snack', name: '零食饮料', icon: '🍿' },
         { id: 'frozen', name: '冷冻食品', icon: '🧊' },
+        { id: 'prepared', name: '成品菜肴', icon: '🍱' },
         { id: 'other', name: '其他', icon: '📦' }
     ]
 };
@@ -1555,11 +1556,17 @@ const app = {
     getInspirationPageHTML() {
         return `
             <div class="p-4 md:p-6">
-                <div class="mb-6">
-                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-                        灵机一动 <span class="text-3xl">✨</span>
-                    </h1>
-                    <p class="text-gray-500">AI 根据您的食材智能推荐菜谱</p>
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+                            灵机一动 <span class="text-3xl">✨</span>
+                        </h1>
+                        <p class="text-gray-500">AI 根据您的食材智能推荐菜谱</p>
+                    </div>
+                    <button onclick="app.navigateTo('recipes')" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                        查看菜谱
+                    </button>
                 </div>
 
                 <!-- AI 对话区域 -->
@@ -1674,25 +1681,35 @@ const app = {
     },
 
     getRecipesPageHTML() {
-        const categoryLabels = {
-            'quick': '快手晚餐',
-            'expiring': '消耗临期',
-            'creative': '创意混搭'
-        };
-        
-        const categoryColors = {
-            'quick': { bg: 'bg-red-100', text: 'text-red-600', label: '⚡' },
-            'expiring': { bg: 'bg-amber-100', text: 'text-amber-600', label: '🔥' },
-            'creative': { bg: 'bg-purple-100', text: 'text-purple-600', label: '✨' }
-        };
-        
         return `
             <div class="p-4 md:p-6">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center justify-between mb-4">
                     <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                         <i data-lucide="chef-hat" class="w-7 h-7 text-orange-500"></i>
                         灵感菜谱
                     </h1>
+                    <button onclick="app.navigateTo('inspiration')" class="px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-200 hover:shadow-xl transition-all flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        灵机一动
+                    </button>
+                </div>
+                
+                <!-- 筛选和批量管理 -->
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <button id="filter-btn" onclick="app.showFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2">
+                        <i data-lucide="filter" class="w-4 h-4"></i>
+                        筛选
+                    </button>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button id="batch-manage-btn" onclick="app.toggleBatchMode()" class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                            <i data-lucide="check-square" class="w-4 h-4"></i>
+                            批量管理
+                        </button>
+                        <button id="batch-delete-btn" onclick="app.deleteSelectedRecipes()" class="hidden px-3 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors flex items-center gap-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            删除选中
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="recipes-loading" class="flex items-center justify-center py-12">
@@ -1718,6 +1735,7 @@ const app = {
     async loadRecipes() {
         try {
             const data = await api.get('/recipes?page=1&page_size=100');
+            state.recipes = data.items || [];
             const loading = document.getElementById('recipes-loading');
             const list = document.getElementById('recipes-list');
             const empty = document.getElementById('recipes-empty');
@@ -1750,9 +1768,12 @@ const app = {
             list.innerHTML = data.items.map(recipe => {
                 const colors = categoryColors[recipe.category] || categoryColors['creative'];
                 return `
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-recipe-id="${recipe.id}">
                     <div class="p-5">
-                        <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-start gap-3 mb-3">
+                            <label class="batch-checkbox hidden flex-shrink-0 mt-1">
+                                <input type="checkbox" value="${recipe.id}" class="recipe-checkbox w-5 h-5 text-orange-500 rounded border-gray-300 focus:ring-orange-500">
+                            </label>
                             <div class="flex-1">
                                 <h3 class="text-lg font-bold text-gray-800">${recipe.name}</h3>
                                 <p class="text-sm text-gray-500 mt-1">${recipe.description || ''}</p>
@@ -1831,6 +1852,228 @@ const app = {
         } catch (error) {
             ui.toast('删除失败: ' + error.message, 'error');
         }
+    },
+
+    toggleBatchMode() {
+        const checkboxes = document.querySelectorAll('.batch-checkbox');
+        const deleteBtn = document.getElementById('batch-delete-btn');
+        const manageBtn = document.getElementById('batch-manage-btn');
+        
+        const isHidden = checkboxes[0]?.classList.contains('hidden');
+        
+        if (isHidden) {
+            checkboxes.forEach(cb => cb.classList.remove('hidden'));
+            deleteBtn?.classList.remove('hidden');
+            manageBtn.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> 取消';
+        } else {
+            checkboxes.forEach(cb => cb.classList.add('hidden'));
+            document.querySelectorAll('.recipe-checkbox').forEach(cb => cb.checked = false);
+            deleteBtn?.classList.add('hidden');
+            manageBtn.innerHTML = '<i data-lucide="check-square" class="w-4 h-4"></i> 批量管理';
+        }
+        
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    },
+
+    async deleteSelectedRecipes() {
+        const checkedBoxes = document.querySelectorAll('.recipe-checkbox:checked');
+        const selectedIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+        
+        if (selectedIds.length === 0) {
+            ui.toast('请选择要删除的菜谱', 'warning');
+            return;
+        }
+        
+        const confirmed = await ui.confirm({
+            title: '批量删除菜谱',
+            message: `确定要删除选中的 ${selectedIds.length} 个菜谱吗？`,
+            type: 'danger',
+            icon: '🗑️'
+        });
+        
+        if (!confirmed) return;
+        
+        try {
+            for (const id of selectedIds) {
+                await api.delete(`/recipes/${id}`);
+            }
+            ui.toast(`已删除 ${selectedIds.length} 个菜谱`, 'success');
+            this.toggleBatchMode();
+            this.loadRecipes();
+        } catch (error) {
+            ui.toast('删除失败: ' + error.message, 'error');
+        }
+    },
+
+    filterRecipes() {
+        const difficulty = state.recipeFilters?.difficulty || '';
+        const time = state.recipeFilters?.time || '';
+        const category = state.recipeFilters?.category || '';
+        
+        const recipeCards = document.querySelectorAll('#recipes-list > div');
+        
+        recipeCards.forEach(card => {
+            const recipeId = parseInt(card.dataset.recipeId);
+            const recipe = state.recipes?.find(r => r.id === recipeId);
+            
+            if (!recipe) {
+                card.classList.add('hidden');
+                return;
+            }
+            
+            let show = true;
+            
+            if (difficulty && recipe.difficulty !== difficulty) {
+                show = false;
+            }
+            
+            if (time) {
+                const maxTime = parseInt(time);
+                if (!recipe.cooking_time || recipe.cooking_time > maxTime) {
+                    show = false;
+                }
+            }
+            
+            if (category && recipe.category !== category) {
+                show = false;
+            }
+            
+            if (show) {
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+        
+        // Update filter button appearance
+        const filterBtn = document.getElementById('filter-btn');
+        if (filterBtn) {
+            if (difficulty || time || category) {
+                filterBtn.classList.add('bg-orange-100', 'border-orange-400', 'text-orange-700');
+            } else {
+                filterBtn.classList.remove('bg-orange-100', 'border-orange-400', 'text-orange-700');
+            }
+        }
+    },
+
+    showFilterModal() {
+        const modal = document.getElementById('filter-modal');
+        const content = document.getElementById('filter-modal-content');
+        
+        if (modal && content) {
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            });
+            return;
+        }
+        
+        const newModal = document.createElement('div');
+        newModal.id = 'filter-modal';
+        newModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
+        
+        newModal.innerHTML = `
+            <div id="filter-modal-content" class="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden scale-95 opacity-0 transition-all duration-200">
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-orange-50 to-amber-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <i data-lucide="filter" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">筛选菜谱</h3>
+                    </div>
+                    <button onclick="app.closeFilterModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">难度</label>
+                        <select id="modal-filter-difficulty" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
+                            <option value="">不限</option>
+                            <option value="简单" ${state.recipeFilters?.difficulty === '简单' ? 'selected' : ''}>简单</option>
+                            <option value="中等" ${state.recipeFilters?.difficulty === '中等' ? 'selected' : ''}>中等</option>
+                            <option value="困难" ${state.recipeFilters?.difficulty === '困难' ? 'selected' : ''}>困难</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">烹饪时间</label>
+                        <select id="modal-filter-time" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
+                            <option value="">不限</option>
+                            <option value="15" ${state.recipeFilters?.time === '15' ? 'selected' : ''}>15分钟内</option>
+                            <option value="30" ${state.recipeFilters?.time === '30' ? 'selected' : ''}>30分钟内</option>
+                            <option value="60" ${state.recipeFilters?.time === '60' ? 'selected' : ''}>1小时内</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">类型</label>
+                        <select id="modal-filter-category" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
+                            <option value="">不限</option>
+                            <option value="quick" ${state.recipeFilters?.category === 'quick' ? 'selected' : ''}>快手晚餐</option>
+                            <option value="expiring" ${state.recipeFilters?.category === 'expiring' ? 'selected' : ''}>消耗临期</option>
+                            <option value="creative" ${state.recipeFilters?.category === 'creative' ? 'selected' : ''}>创意混搭</option>
+                            <option value="custom" ${state.recipeFilters?.category === 'custom' ? 'selected' : ''}>自定义</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="p-5 border-t border-gray-100 flex gap-3 bg-gray-50">
+                    <button onclick="app.clearRecipeFilters()" class="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-white hover:shadow-md transition-all font-medium">
+                        清除筛选
+                    </button>
+                    <button onclick="app.applyRecipeFilters()" class="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 hover:shadow-lg transition-all font-medium shadow-lg shadow-orange-200">
+                        应用筛选
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(newModal);
+        
+        requestAnimationFrame(() => {
+            const content = document.getElementById('filter-modal-content');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        });
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        newModal.addEventListener('click', (e) => {
+            if (e.target === newModal) {
+                app.closeFilterModal();
+            }
+        });
+    },
+
+    closeFilterModal() {
+        const modal = document.getElementById('filter-modal');
+        const content = document.getElementById('filter-modal-content');
+        
+        if (modal && content) {
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.remove();
+            }, 200);
+        }
+    },
+
+    applyRecipeFilters() {
+        state.recipeFilters = {
+            difficulty: document.getElementById('modal-filter-difficulty')?.value || '',
+            time: document.getElementById('modal-filter-time')?.value || '',
+            category: document.getElementById('modal-filter-category')?.value || ''
+        };
+        
+        this.closeFilterModal();
+        this.filterRecipes();
+    },
+
+    clearRecipeFilters() {
+        state.recipeFilters = { difficulty: '', time: '', category: '' };
+        this.closeFilterModal();
+        this.filterRecipes();
     },
 
     updateNavState(page) {
@@ -2789,7 +3032,7 @@ const app = {
         try {
             const result = await api.post('/ai/recipes', {
                 scenario,
-                foods: foods.map(f => ({ name: f.name, category: f.category })),
+                foods: foods.map(f => ({ name: f.name, category: f.category, quantity: f.quantity, unit: f.unit })),
                 expiringFoods: expiringFoods.map(f => f.name)
             });
 
@@ -2829,7 +3072,7 @@ const app = {
             const result = await api.post('/ai/recipes', {
                 scenario: 'custom',
                 custom_requirement: customRequirement.trim(),
-                foods: foods.map(f => ({ name: f.name, category: f.category })),
+                foods: foods.map(f => ({ name: f.name, category: f.category, quantity: f.quantity, unit: f.unit })),
                 expiringFoods: expiringFoods.map(f => f.name)
             });
 

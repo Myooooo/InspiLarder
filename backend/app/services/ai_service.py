@@ -195,82 +195,6 @@ class AIService:
             # 失败时返回模拟数据
             return self._mock_recognize_food()
     
-    async def recommend_recipes(
-        self,
-        ingredients: List[str],
-        dietary_preferences: Optional[List[str]] = None,
-        cuisine_type: Optional[str] = None,
-        count: int = 3,
-    ) -> List[RecipeRecommendation]:
-        """
-        根据食材推荐食谱
-        
-        Args:
-            ingredients: 可用食材列表
-            dietary_preferences: 饮食偏好（如素食、无麸质等）
-            cuisine_type: 菜系类型（如中餐、西餐等）
-            count: 推荐数量
-            
-        Returns:
-            List[RecipeRecommendation]: 食谱推荐列表
-        """
-        if not self.api_key:
-            logger.warning("未配置OpenAI API密钥，使用模拟数据")
-            return self._mock_recommend_recipes(ingredients, count)
-        
-        # 构建提示
-        system_prompt = self._build_recipe_prompt(count)
-        
-        user_prompt = f"""
-可用食材：{', '.join(ingredients)}
-"""
-        
-        if dietary_preferences:
-            user_prompt += f"\n饮食偏好：{', '.join(dietary_preferences)}"
-        
-        if cuisine_type:
-            user_prompt += f"\n菜系：{cuisine_type}"
-        
-        try:
-            response = await self.client.chat.completions.create(
-                model=self.text_model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=self.text_temperature,
-                top_p=self.text_top_p,
-                max_tokens=2000,
-            )
-            
-            # 解析响应
-            content = response.choices[0].message.content
-            # 清理 Markdown 代码块标记
-            if content:
-                content = content.replace("```json", "").replace("```", "").strip()
-            result_data = json.loads(content)
-            
-            # 转换为结果对象
-            recipes = []
-            for item in result_data.get("recipes", []):
-                recipes.append(
-                    RecipeRecommendation(
-                        name=item.get("name", "未命名食谱"),
-                        description=item.get("description", ""),
-                        ingredients=item.get("ingredients", []),
-                        steps=item.get("steps", []),
-                        cooking_time=item.get("cooking_time"),
-                        difficulty=item.get("difficulty"),
-                    )
-                )
-            
-            logger.info(f"食谱推荐成功，推荐 {len(recipes)} 个食谱")
-            return recipes
-            
-        except Exception as e:
-            logger.error(f"食谱推荐失败: {e}")
-            return self._mock_recommend_recipes(ingredients, count)
-    
     async def recommend_recipes_with_scenario(
         self,
         ingredients: List[str],
@@ -278,6 +202,7 @@ class AIService:
         scenario: str = "creative",
         custom_requirement: str = "",
         count: int = 3,
+        servings: int = 2,
     ) -> List[RecipeRecommendation]:
         """
         根据场景推荐食谱
@@ -288,6 +213,7 @@ class AIService:
             scenario: 场景类型 (quick-快手, expiring-消耗, creative-创意, custom-自定义)
             custom_requirement: 自定义需求描述
             count: 推荐数量
+            servings: 食用人数
             
         Returns:
             List[RecipeRecommendation]: 食谱推荐列表
@@ -297,7 +223,7 @@ class AIService:
             return self._mock_recommend_recipes(ingredients, count)
         
         # 根据场景构建不同的提示
-        system_prompt = self._build_scenario_recipe_prompt(scenario, count)
+        system_prompt = self._build_scenario_recipe_prompt(scenario, count, servings)
         
         user_prompt = f"可用食材：{', '.join(ingredients)}"
         
@@ -351,7 +277,7 @@ class AIService:
             logger.error(f"场景化食谱推荐失败: {e}")
             return self._mock_recommend_recipes(ingredients, count)
     
-    def _build_scenario_recipe_prompt(self, scenario: str, count: int) -> str:
+    def _build_scenario_recipe_prompt(self, scenario: str, count: int, servings: int = 2) -> str:
         scenario_descriptions = {
             "quick": "快手晚餐 - 15分钟内能完成的简单菜品",
             "expiring": "消耗大户 - 优先使用临期食材的菜谱",
@@ -361,9 +287,9 @@ class AIService:
         scenario_desc = scenario_descriptions.get(scenario, "创意菜谱")
         
         return f"""
-你是一位专业的美食推荐官，专门推荐"{scenario_desc}，以中餐为主，偶尔推荐西餐"。
+你是一位专业的美食推荐官，专门推荐"{scenario_desc}，优先推荐中餐，偶尔推荐西餐"。
 
-请根据用户提供的食材，推荐{count}个合适的食谱。
+请根据用户提供的食材（包括食材份量），推荐{count}个合适的食谱。
 
 返回JSON格式：
 {{
@@ -371,11 +297,11 @@ class AIService:
         {{
             "name": "食谱名称",
             "description": "简短描述这道菜的特点和口味",
-            "ingredients": ["食材名称 用量", "食材名称 用量"],
+            "ingredients": ["食材名称 建议用量", "食材名称 建议用量"],
             "steps": ["步骤1：具体操作，包含份量和时间", "步骤2：具体操作，包含份量和时间"],
             "cooking_time": 15,
             "difficulty": "简单",
-            "servings": 2,
+            "servings": 建议食用人数,
             "tags": ["标签1", "标签2"]
         }}
     ]
@@ -415,7 +341,7 @@ class AIService:
         {
             "name": "食物名称（中文）",
             "icon": "推荐的相关Emoji图标，如🍎、🥬、🥩等",
-            "category": "分类（vegetable/fruit/meat/seafood/dairy/grain/snack/drink/condiment/other）",
+            "category": "分类（vegetable/fruit/meat/seafood/dairy/grain/snack/drink/condiment/prepared/other）",
             "confidence": 0.95,
             "description": "简短描述（可选）",
             "expiry_days": 7,
@@ -427,40 +353,13 @@ class AIService:
 
 注意：
 - 识别图片中最主要的食物
-- icon字段必须返回一个合适的中文Emoji，如苹果用🍎，白菜用🥬，肉类用🥩，鱼类用🐟等
-- 如果有多种食物或是一道菜，则识别出菜品名称，并在description中列出主要食材
+- icon字段必须返回一个合适的中文Emoji，如苹果用🍎，白菜用🥬，肉类用🥩，鱼类用🐟等，成品菜肴用🍱
+- 如果是外卖、剩菜、已做好的菜品等，使用prepared（成品菜肴）分类
 - confidence 是 0-1 之间的置信度
 - expiry_days 是保质期，如果包装上有可见的保质期则填入，否则提供建议的保质期（天），如果不确定可以留空
 - quantity 是数量，根据图片中食物的数量或包装上的数量填写，默认1
 - unit 是单位，常用单位包括：个、克、千克、升、毫升、盒、瓶、包、袋、斤等，根据实际情况选择
 - 只返回JSON，不要添加其他说明文字
-"""
-    
-    def _build_recipe_prompt(self, count: int) -> str:
-        """构建食谱推荐提示"""
-        return f"""
-你是一位专业的美食推荐官。请根据用户提供的食材，推荐{count}个美味且实用的食谱，以中餐为主，偶尔推荐西餐。
-
-请以JSON格式返回，格式如下：
-{{
-    "recipes": [
-        {{
-            "name": "食谱名称",
-            "description": "简短描述这道菜的特点",
-            "ingredients": ["食材1", "食材2", "食材3"],
-            "steps": ["步骤1", "步骤2", "步骤3"],
-            "cooking_time": 30,
-            "difficulty": "简单"
-        }}
-    ]
-}}
-
-注意：
-- 优先使用用户提供的食材
-- cooking_time 是烹饪时间（分钟）
-- difficulty 可以是：简单、中等、困难
-- 食谱应该实用且易于家庭制作
-- 只返回JSON格式，不要添加其他说明文字
 """
     
     def _mock_recognize_food(self) -> List[FoodRecognitionResult]:

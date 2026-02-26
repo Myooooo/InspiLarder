@@ -23,6 +23,7 @@ FOOD_CATEGORIES = [
     ("snack", "零食"),
     ("drink", "饮料"),
     ("condiment", "调味品"),
+    ("prepared", "成品菜肴"),
     ("other", "其他"),
 ]
 

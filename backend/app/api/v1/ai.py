@@ -105,8 +105,9 @@ async def recommend_recipes(
         foods = request_data.get("foods", [])
         expiring_foods = request_data.get("expiringFoods", [])
         custom_requirement = request_data.get("custom_requirement", "")
+        servings = request_data.get("servings", 2)
         
-        logger.info(f"用户 {current_user.id} 请求食谱推荐，场景: {scenario}")
+        logger.info(f"用户 {current_user.id} 请求食谱推荐，场景: {scenario}，食用人数: {servings}")
         
         if not foods:
             return {
@@ -117,15 +118,24 @@ async def recommend_recipes(
                 "recipes": []
             }
         
-        ingredient_names = [f.get("name", "") for f in foods if f.get("name")]
+        ingredient_list = []
+        for f in foods:
+            if f.get("name") and f.get("category") != "prepared":
+                quantity = f.get("quantity", 1)
+                unit = f.get("unit", "个")
+                if quantity and quantity != 1:
+                    ingredient_list.append(f"{f.get('name')}({quantity}{unit})")
+                else:
+                    ingredient_list.append(f.get("name", ""))
         
         try:
             recipes = await ai_service.recommend_recipes_with_scenario(
-                ingredients=ingredient_names,
+                ingredients=ingredient_list,
                 expiring_ingredients=expiring_foods,
                 scenario=scenario,
                 custom_requirement=custom_requirement if scenario == "custom" else "",
                 count=3,
+                servings=servings,
             )
             
             scenario_messages = {
@@ -496,6 +506,7 @@ async def get_food_categories() -> Any:
         {"id": "snack", "name": "零食", "icon": "🍪"},
         {"id": "drink", "name": "饮料", "icon": "🥤"},
         {"id": "condiment", "name": "调味品", "icon": "🧂"},
+        {"id": "prepared", "name": "成品菜肴", "icon": "🍱"},
         {"id": "other", "name": "其他", "icon": "📦"},
     ]
     
