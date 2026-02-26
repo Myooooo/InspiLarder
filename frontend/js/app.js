@@ -1020,6 +1020,8 @@ const app = {
     },
 
     async renderPage(page) {
+        state.currentPage = page;
+        
         const mainContent = document.getElementById('main-content');
         if (!mainContent) return;
         
@@ -1173,7 +1175,7 @@ const app = {
                     <div class="p-4 border-b border-gray-100 flex items-center justify-between">
                         <h2 class="font-bold text-gray-800 flex items-center gap-2">
                             <i data-lucide="utensils" class="w-5 h-5 text-orange-500"></i>
-                            我的食材
+                            近期食材
                         </h2>
                         <button onclick="app.showAddModal()" class="btn btn-primary text-sm py-2 px-4">
                             <i data-lucide="plus" class="w-4 h-4"></i>
@@ -2817,7 +2819,7 @@ const app = {
             });
             ui.toast('添加成功！', 'success');
             await this.loadInitialData();
-            this.renderPage('home');
+            this.renderPage(state.currentPage);
         } catch (error) {
             ui.toast('添加失败: ' + error.message, 'error');
         }
@@ -3076,7 +3078,7 @@ const app = {
             ui.toast('添加成功！', 'success');
             this.hideAddModal();
             await this.loadInitialData();
-            this.renderPage('home');
+            this.renderPage(state.currentPage);
         } catch (error) {
             ui.hideLoading('#confirm-save');
             ui.toast('保存失败: ' + error.message, 'error');
@@ -3533,7 +3535,7 @@ const app = {
             });
             ui.toast('食材更新成功！', 'success');
             await this.loadInitialData();
-            this.renderPage('home');
+            this.renderPage(state.currentPage);
         } catch (error) {
             ui.toast('更新失败: ' + error.message, 'error');
         }
