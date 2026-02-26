@@ -1038,6 +1038,7 @@ const app = {
             switch (page) {
                 case 'home': mainContent.innerHTML = this.getHomePageHTML(); break;
                 case 'login': mainContent.innerHTML = this.getLoginPageHTML(); break;
+                case 'foods': mainContent.innerHTML = this.getFoodsPageHTML(); break;
                 case 'spaces': mainContent.innerHTML = this.getSpacesPageHTML(); break;
                 case 'inspiration': mainContent.innerHTML = this.getInspirationPageHTML(); break;
                 case 'profile': 
@@ -1107,7 +1108,7 @@ const app = {
                 
                 <!-- 统计卡片 -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 stagger-list">
-                    <div class="stat-card cursor-pointer hover:shadow-md transition-shadow" onclick="document.getElementById('food-list').scrollIntoView({behavior: 'smooth'})">
+                    <div class="stat-card cursor-pointer hover:shadow-md transition-shadow" onclick="app.navigateTo('foods')">
                         <div class="stat-card-icon stat-card-icon-green">🥬</div>
                         <div class="stat-card-value">${state.foods?.filter(f => !f.is_finished).length || 0}</div>
                         <div class="stat-card-label">食材总数</div>
@@ -1184,8 +1185,15 @@ const app = {
                             ? `<div class="space-y-4">
                                 ${state.foods.filter(f => !f.is_finished).length > 0 
                                     ? `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-list">
-                                        ${state.foods.filter(f => !f.is_finished).map(food => ui.createFoodCard(food)).join('')}
-                                       </div>`
+                                        ${state.foods.filter(f => !f.is_finished).slice(0, 10).map(food => ui.createFoodCard(food)).join('')}
+                                       </div>
+                                       ${state.foods.filter(f => !f.is_finished).length > 10 
+                                           ? `<button onclick="app.navigateTo('foods')" class="w-full mt-4 py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-orange-400 hover:text-orange-500 transition-colors flex items-center justify-center gap-2">
+                                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                                查看全部 (${state.foods.filter(f => !f.is_finished).length})
+                                            </button>`
+                                           : ''
+                                       }`
                                     : ''
                                 }
                                 ${state.foods.filter(f => f.is_finished).length > 0 
@@ -1201,7 +1209,7 @@ const app = {
                                                 const dateA = a.finished_at ? new Date(a.finished_at) : new Date(0);
                                                 const dateB = b.finished_at ? new Date(b.finished_at) : new Date(0);
                                                 return dateB - dateA;
-                                            }).map(food => ui.createFoodCard(food)).join('')}
+                                            }).slice(0, 5).map(food => ui.createFoodCard(food)).join('')}
                                         </div>
                                        </div>`
                                     : ''
@@ -1267,6 +1275,69 @@ const app = {
                             </button>
                         </form>
                     </div>
+                </div>
+            </div>
+        `;
+    },
+
+    getFoodsPageHTML() {
+        const totalCount = state.foods?.filter(f => !f.is_finished).length || 0;
+        const finishedCount = state.foods?.filter(f => f.is_finished).length || 0;
+        
+        return `
+            <div class="p-4 md:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                        <i data-lucide="carrot" class="w-7 h-7 text-orange-500"></i>
+                        全部食材
+                    </h1>
+                    <button onclick="app.showAddModal()" class="px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-200 hover:shadow-xl transition-all flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        添加食材
+                    </button>
+                </div>
+                
+                <!-- 筛选和排序 -->
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <button id="foods-filter-btn" onclick="app.showFoodsFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2">
+                        <i data-lucide="filter" class="w-4 h-4"></i>
+                        筛选
+                    </button>
+                    <select id="foods-sort" onchange="app.sortFoods()" class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <option value="created_desc">最近添加</option>
+                        <option value="created_asc">最早添加</option>
+                        <option value="expiry_asc">即将过期</option>
+                        <option value="expiry_desc">过期最久</option>
+                        <option value="name_asc">名称 A-Z</option>
+                        <option value="name_desc">名称 Z-A</option>
+                    </select>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button id="foods-batch-btn" onclick="app.toggleFoodsBatchMode()" class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                            <i data-lucide="check-square" class="w-4 h-4"></i>
+                            批量管理
+                        </button>
+                        <button id="foods-batch-actions" onclick="app.showFoodsBatchActions()" class="hidden px-3 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors flex items-center gap-1">
+                            <i data-lucide="actions" class="w-4 h-4"></i>
+                            批量操作
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="foods-loading" class="flex items-center justify-center py-12">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                </div>
+                
+                <div id="foods-list" class="hidden space-y-4"></div>
+                
+                <div id="foods-empty" class="hidden text-center py-12">
+                    <div class="w-20 h-20 mx-auto mb-4 bg-orange-50 rounded-full flex items-center justify-center">
+                        <span class="text-4xl">🥬</span>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-800 mb-2">暂无食材</h3>
+                    <p class="text-gray-500 mb-6">开始添加您的食材吧！</p>
+                    <button onclick="app.showAddModal()" class="px-6 py-3 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-200 hover:shadow-xl transition-all">
+                        添加食材
+                    </button>
                 </div>
             </div>
         `;
@@ -1392,7 +1463,7 @@ const app = {
                         ${childLocations.map(child => {
                             const childFoodCount = state.foods.filter(f => f.location_id === child.id && !f.is_finished).length;
                             return `
-                                <div class="flex items-center justify-between p-2 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors" onclick="app.showLocationDetail(${child.id})">
+                                <div class="flex items-center justify-between p-2 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors" onclick="document.getElementById('location-detail-backdrop')?.remove(); app.showLocationDetail(${child.id})">
                                     <div class="flex items-center gap-2">
                                         <span>${child.icon || '📁'}</span>
                                         <span class="text-sm text-gray-700">${child.name}</span>
@@ -1406,14 +1477,58 @@ const app = {
             `;
         }
 
-        ui.confirm({
-            title: location.name,
-            message: `${foodsHTML}${childHTML}`,
-            type: 'info',
-            icon: location.icon || '📦',
-            html: true,
-            showEdit: true,
-            onEdit: () => this.editLocation(locationId)
+        const modal = document.createElement('div');
+        modal.id = 'location-detail-backdrop';
+        modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden scale-95 opacity-0 transition-all duration-200" id="location-detail-modal">
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-lg text-2xl">
+                            ${location.icon || '📦'}
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">${location.name}</h3>
+                            <p class="text-xs text-gray-500">${childLocations.length} 个子空间 · ${locationFoods.length} 个食材</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('location-detail-modal').remove(); document.getElementById('location-detail-backdrop').remove();" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-5 max-h-96 overflow-y-auto">
+                    ${foodsHTML || childHTML || '<p class="text-gray-500 text-center py-4">暂无内容</p>'}
+                </div>
+                <div class="p-5 border-t border-gray-100 flex gap-3 bg-gray-50">
+                    <button onclick="app.deleteLocation(${locationId})" class="flex-1 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg shadow-red-200">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        删除空间
+                    </button>
+                    <button onclick="app.editLocation(${locationId}); document.getElementById('location-detail-modal').remove(); document.getElementById('location-detail-backdrop').remove();" class="flex-1 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg shadow-orange-200">
+                        <i data-lucide="edit-2" class="w-5 h-5"></i>
+                        编辑空间
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.append(modal);
+        
+        requestAnimationFrame(() => {
+            const content = document.getElementById('location-detail-modal');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        });
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
         });
     },
 
@@ -1645,7 +1760,7 @@ const app = {
                     </div>
                     
                     <div class="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
-                        <div class="text-center cursor-pointer hover:opacity-80" onclick="app.navigateTo('home')">
+                        <div class="text-center cursor-pointer hover:opacity-80" onclick="app.navigateTo('foods')">
                             <div class="text-2xl font-bold text-gray-800">${state.foods?.filter(f => !f.is_finished).length || 0}</div>
                             <div class="text-sm text-gray-500">食材</div>
                         </div>
@@ -2128,6 +2243,465 @@ const app = {
         this.bindAIModalEvents();
     },
 
+    loadFoods() {
+        const loading = document.getElementById('foods-loading');
+        const list = document.getElementById('foods-list');
+        const empty = document.getElementById('foods-empty');
+        
+        if (!loading || !list || !empty) return;
+        
+        const allFoods = state.foods || [];
+        const activeFoods = allFoods.filter(f => !f.is_finished);
+        const finishedFoods = allFoods.filter(f => f.is_finished);
+        
+        loading.classList.add('hidden');
+        
+        if (allFoods.length === 0) {
+            list.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        list.classList.remove('hidden');
+        
+        this.renderFoodsList(allFoods);
+    },
+
+    renderFoodsList(foods) {
+        const list = document.getElementById('foods-list');
+        if (!list) return;
+        
+        const activeFoods = foods.filter(f => !f.is_finished);
+        const finishedFoods = foods.filter(f => f.is_finished);
+        
+        list.innerHTML = `
+            <div class="space-y-4">
+                ${activeFoods.length > 0 
+                    ? `<div>
+                        <h3 class="text-sm font-medium text-gray-500 mb-3">食材 (${activeFoods.length})</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${activeFoods.map(food => this.createFoodCardWithCheckbox(food)).join('')}
+                        </div>
+                       </div>`
+                    : ''
+                }
+                ${finishedFoods.length > 0 
+                    ? `<div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            已消耗 (${finishedFoods.length})
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
+                            ${finishedFoods.sort((a, b) => {
+                                const dateA = a.finished_at ? new Date(a.finished_at) : new Date(0);
+                                const dateB = b.finished_at ? new Date(b.finished_at) : new Date(0);
+                                return dateB - dateA;
+                            }).map(food => this.createFoodCardWithCheckbox(food)).join('')}
+                        </div>
+                       </div>`
+                    : ''
+                }
+            </div>
+        `;
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    },
+
+    createFoodCardWithCheckbox(food) {
+        const card = ui.createFoodCard(food);
+        const foodId = food.id;
+        return card.replace('data-food-id="' + foodId + '"', 'data-food-id="' + foodId + '" data-checkbox');
+    },
+
+    sortFoods() {
+        const sortBy = document.getElementById('foods-sort')?.value || 'created_desc';
+        let foods = [...(state.foods || [])];
+        
+        switch (sortBy) {
+            case 'created_desc':
+                foods.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                break;
+            case 'created_asc':
+                foods.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                break;
+            case 'expiry_asc':
+                foods.sort((a, b) => {
+                    if (!a.expiry_date) return 1;
+                    if (!b.expiry_date) return -1;
+                    return new Date(a.expiry_date) - new Date(b.expiry_date);
+                });
+                break;
+            case 'expiry_desc':
+                foods.sort((a, b) => {
+                    if (!a.expiry_date) return 1;
+                    if (!b.expiry_date) return -1;
+                    return new Date(b.expiry_date) - new Date(a.expiry_date);
+                });
+                break;
+            case 'name_asc':
+                foods.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            case 'name_desc':
+                foods.sort((a, b) => b.name.localeCompare(a.name));
+                break;
+        }
+        
+        this.renderFoodsList(foods);
+    },
+
+    toggleFoodsBatchMode() {
+        const checkboxes = document.querySelectorAll('.food-checkbox-wrapper');
+        const batchBtn = document.getElementById('foods-batch-btn');
+        const batchActions = document.getElementById('foods-batch-actions');
+        
+        const isHidden = checkboxes.length > 0 && checkboxes[0].classList.contains('hidden');
+        
+        if (isHidden) {
+            document.querySelectorAll('.food-card').forEach(card => {
+                const checkbox = document.createElement('div');
+                checkbox.className = 'food-checkbox-wrapper absolute top-2 left-2';
+                checkbox.innerHTML = `<input type="checkbox" class="food-checkbox w-5 h-5 text-orange-500 rounded border-gray-300 focus:ring-orange-500" value="${card.dataset.foodId}">`;
+                card.style.position = 'relative';
+                card.insertBefore(checkbox, card.firstChild);
+            });
+            batchActions?.classList.remove('hidden');
+            batchBtn.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> 取消';
+        } else {
+            document.querySelectorAll('.food-checkbox-wrapper').forEach(cb => cb.remove());
+            batchActions?.classList.add('hidden');
+            batchBtn.innerHTML = '<i data-lucide="check-square" class="w-4 h-4"></i> 批量管理';
+        }
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    },
+
+    async showFoodsBatchActions() {
+        const checkedBoxes = document.querySelectorAll('.food-checkbox:checked');
+        const selectedIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+        
+        if (selectedIds.length === 0) {
+            ui.toast('请选择要操作的食材', 'warning');
+            return;
+        }
+        
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden scale-95 opacity-0 transition-all duration-200" id="batch-actions-modal">
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-orange-50 to-amber-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <i data-lucide="layers" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">批量操作</h3>
+                    </div>
+                    <button onclick="this.closest('#batch-actions-modal').remove()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-5 space-y-3">
+                    <p class="text-gray-600 mb-4">已选择 <strong>${selectedIds.length}</strong> 个食材</p>
+                    <button onclick="app.batchConsumeFoods([${selectedIds}])" class="w-full py-3 bg-orange-100 text-orange-700 rounded-xl hover:bg-orange-200 transition-colors flex items-center justify-center gap-2 font-medium">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        标记为已消耗
+                    </button>
+                    <button onclick="app.batchDeleteFoods([${selectedIds}])" class="w-full py-3 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors flex items-center justify-center gap-2 font-medium">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        删除食材
+                    </button>
+                    <button onclick="app.showBatchMoveFoodsModal([${selectedIds}])" class="w-full py-3 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors flex items-center justify-center gap-2 font-medium">
+                        <i data-lucide="folder" class="w-5 h-5"></i>
+                        移动到空间
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        requestAnimationFrame(() => {
+            const content = document.getElementById('batch-actions-modal');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        });
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    },
+
+    async batchConsumeFoods(ids) {
+        const confirmed = await ui.confirm({
+            title: '批量消耗',
+            message: `确定要将选中的 ${ids.length} 个食材标记为已消耗吗？`,
+            type: 'info',
+            icon: '✓'
+        });
+        
+        if (!confirmed) return;
+        
+        try {
+            for (const id of ids) {
+                await api.post(`/food/${id}/consume`, {});
+            }
+            ui.toast('已批量标记为已消耗', 'success');
+            document.getElementById('batch-actions-modal')?.remove();
+            this.toggleFoodsBatchMode();
+            await this.loadInitialData();
+            this.loadFoods();
+        } catch (error) {
+            ui.toast('操作失败: ' + error.message, 'error');
+        }
+    },
+
+    async batchDeleteFoods(ids) {
+        const confirmed = await ui.confirm({
+            title: '批量删除',
+            message: `确定要删除选中的 ${ids.length} 个食材吗？此操作不可恢复。`,
+            type: 'danger',
+            icon: '🗑️'
+        });
+        
+        if (!confirmed) return;
+        
+        try {
+            for (const id of ids) {
+                await api.delete(`/food/${id}`);
+            }
+            ui.toast('已批量删除', 'success');
+            document.getElementById('batch-actions-modal')?.remove();
+            this.toggleFoodsBatchMode();
+            await this.loadInitialData();
+            this.loadFoods();
+        } catch (error) {
+            ui.toast('删除失败: ' + error.message, 'error');
+        }
+    },
+
+    showBatchMoveFoodsModal(ids) {
+        document.getElementById('batch-actions-modal')?.remove();
+        
+        const locations = state.locations || [];
+        
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
+        
+        let locationsHtml = locations.map(loc => 
+            `<button onclick="app.batchMoveFoods([${ids}], ${loc.id})" class="w-full p-4 bg-gray-50 hover:bg-orange-50 rounded-xl transition-colors flex items-center gap-3">
+                <span class="text-2xl">${loc.icon || '📦'}</span>
+                <span class="font-medium">${loc.name}</span>
+            </button>`
+        ).join('');
+        
+        if (locationsHtml === '') {
+            locationsHtml = '<p class="text-gray-500 text-center py-4">暂无储存空间</p>';
+        }
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden scale-95 opacity-0 transition-all duration-200" id="move-foods-modal">
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <i data-lucide="folder" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">移动到空间</h3>
+                    </div>
+                    <button onclick="this.closest('#move-foods-modal').remove()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-5 space-y-3 max-h-96 overflow-y-auto">
+                    ${locationsHtml}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        requestAnimationFrame(() => {
+            const content = document.getElementById('move-foods-modal');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        });
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    },
+
+    async batchMoveFoods(ids, locationId) {
+        try {
+            for (const id of ids) {
+                await api.put(`/food/${id}`, { location_id: locationId });
+            }
+            ui.toast('已批量移动到新空间', 'success');
+            document.getElementById('move-foods-modal')?.remove();
+            await this.loadInitialData();
+            this.loadFoods();
+        } catch (error) {
+            ui.toast('移动失败: ' + error.message, 'error');
+        }
+    },
+
+    showFoodsFilterModal() {
+        const modal = document.getElementById('foods-filter-modal');
+        const content = document.getElementById('foods-filter-modal-content');
+        
+        if (modal && content) {
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            });
+            return;
+        }
+        
+        const newModal = document.createElement('div');
+        newModal.id = 'foods-filter-modal';
+        newModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
+        
+        newModal.innerHTML = `
+            <div id="foods-filter-modal-content" class="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden scale-95 opacity-0 transition-all duration-200">
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-orange-50 to-amber-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <i data-lucide="filter" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">筛选食材</h3>
+                    </div>
+                    <button onclick="app.closeFoodsFilterModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">分类</label>
+                        <select id="modal-foods-category" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
+                            <option value="">全部分类</option>
+                            ${state.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">状态</label>
+                        <select id="modal-foods-status" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
+                            <option value="">全部状态</option>
+                            <option value="active">未消耗</option>
+                            <option value="finished">已消耗</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">储存空间</label>
+                        <select id="modal-foods-location" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
+                            <option value="">全部空间</option>
+                            ${state.locations.map(l => `<option value="${l.id}">${l.icon} ${l.name}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="p-5 border-t border-gray-100 flex gap-3 bg-gray-50">
+                    <button onclick="app.clearFoodsFilters()" class="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-white hover:shadow-md transition-all font-medium">
+                        清除筛选
+                    </button>
+                    <button onclick="app.applyFoodsFilters()" class="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 hover:shadow-lg transition-all font-medium shadow-lg shadow-orange-200">
+                        应用筛选
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(newModal);
+        
+        requestAnimationFrame(() => {
+            const content = document.getElementById('foods-filter-modal-content');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        });
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        newModal.addEventListener('click', (e) => {
+            if (e.target === newModal) {
+                this.closeFoodsFilterModal();
+            }
+        });
+    },
+
+    closeFoodsFilterModal() {
+        const modal = document.getElementById('foods-filter-modal');
+        const content = document.getElementById('foods-filter-modal-content');
+        
+        if (modal && content) {
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => modal.remove(), 200);
+        }
+    },
+
+    applyFoodsFilters() {
+        const category = document.getElementById('modal-foods-category')?.value || '';
+        const status = document.getElementById('modal-foods-status')?.value || '';
+        const location = document.getElementById('modal-foods-location')?.value || '';
+        
+        let foods = [...(state.foods || [])];
+        
+        if (category) {
+            foods = foods.filter(f => f.category === category);
+        }
+        
+        if (status === 'active') {
+            foods = foods.filter(f => !f.is_finished);
+        } else if (status === 'finished') {
+            foods = foods.filter(f => f.is_finished);
+        }
+        
+        if (location) {
+            foods = foods.filter(f => f.location_id === parseInt(location));
+        }
+        
+        this.closeFoodsFilterModal();
+        this.renderFoodsList(foods);
+        
+        const filterBtn = document.getElementById('foods-filter-btn');
+        if (filterBtn) {
+            if (category || status || location) {
+                filterBtn.classList.add('bg-orange-100', 'border-orange-400', 'text-orange-700');
+            } else {
+                filterBtn.classList.remove('bg-orange-100', 'border-orange-400', 'text-orange-700');
+            }
+        }
+    },
+
+    clearFoodsFilters() {
+        this.closeFoodsFilterModal();
+        this.loadFoods();
+        
+        const filterBtn = document.getElementById('foods-filter-btn');
+        if (filterBtn) {
+            filterBtn.classList.remove('bg-orange-100', 'border-orange-400', 'text-orange-700');
+        }
+    },
+
     bindPageEvents(page) {
         if (page === 'login') {
             const loginForm = document.getElementById('login-form');
@@ -2144,6 +2718,8 @@ const app = {
             }
         } else if (page === 'recipes') {
             this.loadRecipes();
+        } else if (page === 'foods') {
+            this.loadFoods();
         }
     },
 
@@ -3012,6 +3588,12 @@ const app = {
 
         try {
             await api.delete(`/locations/${locationId}`);
+            
+            const backdrop = document.getElementById('location-detail-backdrop');
+            const modalContent = document.getElementById('location-detail-modal');
+            if (backdrop) backdrop.remove();
+            if (modalContent) modalContent.remove();
+            
             ui.toast('空间已删除', 'success');
             await this.loadInitialData();
             this.renderPage('spaces');
