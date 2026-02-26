@@ -1040,7 +1040,6 @@ const app = {
                 case 'spaces': mainContent.innerHTML = this.getSpacesPageHTML(); break;
                 case 'inspiration': mainContent.innerHTML = this.getInspirationPageHTML(); break;
                 case 'profile': 
-                    await this.loadInitialData();
                     mainContent.innerHTML = this.getProfilePageHTML(); 
                     break;
                 case 'recipes': mainContent.innerHTML = this.getRecipesPageHTML(); break;
@@ -2021,7 +2020,7 @@ const app = {
                     label: '存放位置', 
                     type: 'select', 
                     value: '', 
-                    options: [{value: '', label: '未分类'}, ...utils.formatLocationOptions(state.locations)] 
+                    options: [{value: '', label: '选择存放位置'}, ...utils.formatLocationOptions(state.locations)] 
                 },
                 { 
                     name: 'quantity', 
@@ -2363,7 +2362,16 @@ const app = {
         }
     },
 
-    logout() {
+    async logout() {
+        const confirmed = await ui.confirm({
+            title: '退出登录',
+            message: '确定要退出登录吗？',
+            type: 'info',
+            icon: '👋'
+        });
+
+        if (!confirmed) return;
+
         api.clearToken();
         state.currentUser = null;
         this.updateUserUI();
@@ -2388,8 +2396,6 @@ const app = {
 
         try {
             const updateData = {
-                username: result.username,
-                email: result.email || null,
                 nickname: result.nickname || null,
             };
             
@@ -2532,6 +2538,13 @@ const app = {
         const locationName = food.location_id 
             ? (state.locations.find(l => l.id === food.location_id)?.name || '未知位置')
             : '未分类';
+        
+        const locationIcon = food.location_icon || '📦';
+        
+        let locationDisplay = locationName;
+        if (food.parent_location_name) {
+            locationDisplay = `${food.parent_location_name} - ${locationName}`;
+        }
 
         const html = `
             <div class="space-y-4">
@@ -2550,23 +2563,23 @@ const app = {
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-gray-50 p-3 rounded-xl">
+                    <div class="bg-gray-50 p-3 rounded-xl text-center">
                         <p class="text-xs text-gray-500 mb-1">分类</p>
-                        <p class="font-medium text-gray-800 flex items-center gap-1">
+                        <p class="font-medium text-gray-800 flex items-center justify-center gap-1">
                             ${utils.getCategoryIcon(food.category)} ${utils.getCategoryName(food.category)}
                         </p>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded-xl">
+                    <div class="bg-gray-50 p-3 rounded-xl text-center">
                         <p class="text-xs text-gray-500 mb-1">存放位置</p>
-                        <p class="font-medium text-gray-800 flex items-center gap-1">
-                            📦 ${locationName}
+                        <p class="font-medium text-gray-800 flex items-center justify-center gap-1">
+                            ${locationIcon} ${locationDisplay}
                         </p>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded-xl">
+                    <div class="bg-gray-50 p-3 rounded-xl text-center">
                         <p class="text-xs text-gray-500 mb-1">保质期至</p>
                         <p class="font-medium text-gray-800">${utils.formatDateFull(food.expiry_date)}</p>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded-xl">
+                    <div class="bg-gray-50 p-3 rounded-xl text-center">
                         <p class="text-xs text-gray-500 mb-1">开封状态</p>
                         <p class="font-medium ${food.is_opened ? 'text-orange-600' : 'text-gray-600'}">
                             ${food.is_opened ? '已开封' : '未开封'}
@@ -2691,7 +2704,7 @@ const app = {
                     label: '存放位置', 
                     type: 'select', 
                     value: food.location_id, 
-                    options: [{value: '', label: '未分类'}, ...utils.formatLocationOptions(state.locations)] 
+                    options: [{value: '', label: '选择存放位置'}, ...utils.formatLocationOptions(state.locations)] 
                 },
                 { 
                     name: 'quantity', 
@@ -2771,7 +2784,7 @@ const app = {
             return days !== null && days <= 3;
         });
 
-        this.showAILoading('正在为您推荐菜谱...');
+        this.showAILoading('正在生成菜谱...');
 
         try {
             const result = await api.post('/ai/recipes', {
@@ -2810,7 +2823,7 @@ const app = {
             return days !== null && days <= 3;
         });
 
-        this.showAILoading('正在为您推荐菜谱...');
+        this.showAILoading('正在生成菜谱...');
 
         try {
             const result = await api.post('/ai/recipes', {
