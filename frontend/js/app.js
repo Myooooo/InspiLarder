@@ -732,7 +732,7 @@ const ui = {
         const cardClass = isFinished ? `${statusClass} bg-gray-50 opacity-60 rounded-xl p-4 cursor-pointer hover:shadow-md transition-all` : `food-card ${statusClass} ${statusBg} rounded-xl p-4 cursor-pointer hover:shadow-md transition-all`;
         
         return `
-            <div class="${cardClass}" onclick="app.showFoodDetail(${food.id})" data-food-id="${food.id}">
+            <div class="${cardClass}" onclick="app.handleFoodCardClick(event, ${food.id})" data-food-id="${food.id}">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-2xl shadow-sm">
                         ${food.icon || utils.getCategoryIcon(food.category)}
@@ -1181,39 +1181,15 @@ const app = {
                         </button>
                     </div>
                     <div id="food-list" class="p-4">
-                        ${(state.foods?.filter(f => !f.is_finished).length > 0 || state.foods?.filter(f => f.is_finished).length > 0)
+                        ${state.foods?.filter(f => !f.is_finished).length > 0
                             ? `<div class="space-y-4">
-                                ${state.foods.filter(f => !f.is_finished).length > 0 
-                                    ? `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-list">
-                                        ${state.foods.filter(f => !f.is_finished).slice(0, 10).map(food => ui.createFoodCard(food)).join('')}
-                                       </div>
-                                       ${state.foods.filter(f => !f.is_finished).length > 10 
-                                           ? `<button onclick="app.navigateTo('foods')" class="w-full mt-4 py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-orange-400 hover:text-orange-500 transition-colors flex items-center justify-center gap-2">
-                                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                                                查看全部 (${state.foods.filter(f => !f.is_finished).length})
-                                            </button>`
-                                           : ''
-                                       }`
-                                    : ''
-                                }
-                                ${state.foods.filter(f => f.is_finished).length > 0 
-                                    ? `<div class="mt-6 pt-4 border-t border-gray-200">
-                                        <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                            </svg>
-                                            已消耗 (${state.foods.filter(f => f.is_finished).length})
-                                        </h3>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-list opacity-60">
-                                            ${state.foods.filter(f => f.is_finished).sort((a, b) => {
-                                                const dateA = a.finished_at ? new Date(a.finished_at) : new Date(0);
-                                                const dateB = b.finished_at ? new Date(b.finished_at) : new Date(0);
-                                                return dateB - dateA;
-                                            }).slice(0, 5).map(food => ui.createFoodCard(food)).join('')}
-                                        </div>
-                                       </div>`
-                                    : ''
-                                }
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-list">
+                                    ${state.foods.filter(f => !f.is_finished).slice(0, 10).map(food => ui.createFoodCard(food)).join('')}
+                                </div>
+                                <button onclick="app.navigateTo('foods')" class="w-full mt-4 py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-orange-400 hover:text-orange-500 transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                    查看全部 (${state.foods.filter(f => !f.is_finished).length})
+                                </button>
                                </div>`
                             : `<div class="empty-state">
                                 <div class="empty-state-icon">🍽️</div>
@@ -1299,24 +1275,24 @@ const app = {
                 
                 <!-- 筛选和排序 -->
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <button id="foods-filter-btn" onclick="app.showFoodsFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2">
+                    <button id="foods-filter-btn" onclick="app.showFoodsFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white">
                         <i data-lucide="filter" class="w-4 h-4"></i>
                         筛选
                     </button>
-                    <select id="foods-sort" onchange="app.sortFoods()" class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                    <select id="foods-sort" onchange="app.sortFoods()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white">
                         <option value="created_desc">最近添加</option>
                         <option value="created_asc">最早添加</option>
-                        <option value="expiry_asc">即将过期</option>
-                        <option value="expiry_desc">过期最久</option>
+                        <option value="expiry_asc">最近过期</option>
+                        <option value="expiry_desc">最晚过期</option>
                         <option value="name_asc">名称 A-Z</option>
                         <option value="name_desc">名称 Z-A</option>
                     </select>
                     <div class="flex items-center gap-2 ml-auto">
-                        <button id="foods-batch-btn" onclick="app.toggleFoodsBatchMode()" class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                        <button id="foods-batch-btn" onclick="app.toggleFoodsBatchMode()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white">
                             <i data-lucide="check-square" class="w-4 h-4"></i>
                             批量管理
                         </button>
-                        <button id="foods-batch-actions" onclick="app.showFoodsBatchActions()" class="hidden px-3 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors flex items-center gap-1">
+                        <button id="foods-batch-actions" onclick="app.showFoodsBatchActions()" class="hidden px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-xl text-sm shadow-md shadow-orange-200 hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer">
                             <i data-lucide="actions" class="w-4 h-4"></i>
                             批量操作
                         </button>
@@ -1503,11 +1479,11 @@ const app = {
                 <div class="p-5 border-t border-gray-100 flex gap-3 bg-gray-50">
                     <button onclick="app.deleteLocation(${locationId})" class="flex-1 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg shadow-red-200">
                         <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        删除空间
+                        删除
                     </button>
                     <button onclick="app.editLocation(${locationId}); document.getElementById('location-detail-modal').remove(); document.getElementById('location-detail-backdrop').remove();" class="flex-1 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg shadow-orange-200">
                         <i data-lucide="edit-2" class="w-5 h-5"></i>
-                        编辑空间
+                        编辑
                     </button>
                 </div>
             </div>
@@ -1811,16 +1787,16 @@ const app = {
                 
                 <!-- 筛选和批量管理 -->
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <button id="filter-btn" onclick="app.showFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2">
+                    <button id="filter-btn" onclick="app.showFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white">
                         <i data-lucide="filter" class="w-4 h-4"></i>
                         筛选
                     </button>
                     <div class="flex items-center gap-2 ml-auto">
-                        <button id="batch-manage-btn" onclick="app.toggleBatchMode()" class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                        <button id="batch-manage-btn" onclick="app.toggleBatchMode()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white">
                             <i data-lucide="check-square" class="w-4 h-4"></i>
                             批量管理
                         </button>
-                        <button id="batch-delete-btn" onclick="app.deleteSelectedRecipes()" class="hidden px-3 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors flex items-center gap-1">
+                        <button id="batch-delete-btn" onclick="app.deleteSelectedRecipes()" class="hidden px-4 py-2 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-xl text-sm shadow-md shadow-red-200 hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                             删除选中
                         </button>
@@ -2361,7 +2337,9 @@ const app = {
         
         const isHidden = checkboxes.length > 0 && checkboxes[0].classList.contains('hidden');
         
-        if (isHidden) {
+        if (checkboxes.length === 0 || isHidden) {
+            document.querySelectorAll('.food-checkbox-wrapper').forEach(cb => cb.remove());
+            
             document.querySelectorAll('.food-card').forEach(card => {
                 const checkbox = document.createElement('div');
                 checkbox.className = 'food-checkbox-wrapper absolute top-2 left-2';
@@ -2392,6 +2370,7 @@ const app = {
         }
         
         const modal = document.createElement('div');
+        modal.id = 'batch-actions-backdrop';
         modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
         
         modal.innerHTML = `
@@ -2403,7 +2382,7 @@ const app = {
                         </div>
                         <h3 class="text-lg font-bold text-gray-800">批量操作</h3>
                     </div>
-                    <button onclick="this.closest('#batch-actions-modal').remove()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                    <button onclick="document.getElementById('batch-actions-backdrop')?.remove()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -2459,7 +2438,7 @@ const app = {
                 await api.post(`/food/${id}/consume`, {});
             }
             ui.toast('已批量标记为已消耗', 'success');
-            document.getElementById('batch-actions-modal')?.remove();
+            document.getElementById('batch-actions-backdrop')?.remove();
             this.toggleFoodsBatchMode();
             await this.loadInitialData();
             this.loadFoods();
@@ -2483,7 +2462,7 @@ const app = {
                 await api.delete(`/food/${id}`);
             }
             ui.toast('已批量删除', 'success');
-            document.getElementById('batch-actions-modal')?.remove();
+            document.getElementById('batch-actions-backdrop')?.remove();
             this.toggleFoodsBatchMode();
             await this.loadInitialData();
             this.loadFoods();
@@ -2493,11 +2472,12 @@ const app = {
     },
 
     showBatchMoveFoodsModal(ids) {
-        document.getElementById('batch-actions-modal')?.remove();
+        document.getElementById('batch-actions-backdrop')?.remove();
         
         const locations = state.locations || [];
         
         const modal = document.createElement('div');
+        modal.id = 'move-foods-backdrop';
         modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
         
         let locationsHtml = locations.map(loc => 
@@ -2520,7 +2500,7 @@ const app = {
                         </div>
                         <h3 class="text-lg font-bold text-gray-800">移动到空间</h3>
                     </div>
-                    <button onclick="this.closest('#move-foods-modal').remove()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                    <button onclick="document.getElementById('move-foods-backdrop')?.remove()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -2555,7 +2535,8 @@ const app = {
                 await api.put(`/food/${id}`, { location_id: locationId });
             }
             ui.toast('已批量移动到新空间', 'success');
-            document.getElementById('move-foods-modal')?.remove();
+            document.getElementById('move-foods-backdrop')?.remove();
+            this.toggleFoodsBatchMode();
             await this.loadInitialData();
             this.loadFoods();
         } catch (error) {
@@ -2599,21 +2580,6 @@ const app = {
                         <select id="modal-foods-category" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
                             <option value="">全部分类</option>
                             ${state.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">状态</label>
-                        <select id="modal-foods-status" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
-                            <option value="">全部状态</option>
-                            <option value="active">未消耗</option>
-                            <option value="finished">已消耗</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">储存空间</label>
-                        <select id="modal-foods-location" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all bg-white">
-                            <option value="">全部空间</option>
-                            ${state.locations.map(l => `<option value="${l.id}">${l.icon} ${l.name}</option>`).join('')}
                         </select>
                     </div>
                 </div>
@@ -2660,8 +2626,6 @@ const app = {
 
     applyFoodsFilters() {
         const category = document.getElementById('modal-foods-category')?.value || '';
-        const status = document.getElementById('modal-foods-status')?.value || '';
-        const location = document.getElementById('modal-foods-location')?.value || '';
         
         let foods = [...(state.foods || [])];
         
@@ -2669,22 +2633,12 @@ const app = {
             foods = foods.filter(f => f.category === category);
         }
         
-        if (status === 'active') {
-            foods = foods.filter(f => !f.is_finished);
-        } else if (status === 'finished') {
-            foods = foods.filter(f => f.is_finished);
-        }
-        
-        if (location) {
-            foods = foods.filter(f => f.location_id === parseInt(location));
-        }
-        
         this.closeFoodsFilterModal();
         this.renderFoodsList(foods);
         
         const filterBtn = document.getElementById('foods-filter-btn');
         if (filterBtn) {
-            if (category || status || location) {
+            if (category) {
                 filterBtn.classList.add('bg-orange-100', 'border-orange-400', 'text-orange-700');
             } else {
                 filterBtn.classList.remove('bg-orange-100', 'border-orange-400', 'text-orange-700');
@@ -3331,6 +3285,20 @@ const app = {
         }
     },
 
+    handleFoodCardClick(event, foodId) {
+        const card = event.currentTarget;
+        const checkbox = card.querySelector('.food-checkbox');
+        
+        if (checkbox) {
+            if (event.target !== checkbox) {
+                checkbox.checked = !checkbox.checked;
+            }
+            return;
+        }
+        
+        this.showFoodDetail(foodId);
+    },
+
     showFoodDetail(foodId) {
         const food = state.foods.find(f => f.id === foodId);
         if (!food) return;
@@ -3449,7 +3417,7 @@ const app = {
             await api.delete(`/food/${foodId}`);
             ui.toast('食材已删除', 'success');
             await this.loadInitialData();
-            this.renderPage('home');
+            this.renderPage(state.currentPage);
         } catch (error) {
             ui.toast('删除失败: ' + error.message, 'error');
         }
@@ -3469,7 +3437,7 @@ const app = {
             await api.post(`/food/${foodId}/consume`, {});
             ui.toast('已标记为已消耗', 'success');
             await this.loadInitialData();
-            this.renderPage('home');
+            this.renderPage(state.currentPage);
         } catch (error) {
             ui.toast('操作失败: ' + error.message, 'error');
         }
@@ -3489,7 +3457,7 @@ const app = {
             await api.put(`/food/${foodId}`, { is_finished: false, finished_at: null });
             ui.toast('已撤销消耗状态', 'success');
             await this.loadInitialData();
-            this.renderPage('home');
+            this.renderPage(state.currentPage);
         } catch (error) {
             ui.toast('操作失败: ' + error.message, 'error');
         }
