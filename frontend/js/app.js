@@ -729,7 +729,7 @@ const ui = {
         
         const locationEmoji = food.location_icon || '📍';
         
-        const cardClass = isFinished ? `${statusClass} bg-gray-50 opacity-60 rounded-xl p-4 cursor-pointer hover:shadow-md transition-all` : `food-card ${statusClass} ${statusBg} rounded-xl p-4 cursor-pointer hover:shadow-md transition-all`;
+        const cardClass = isFinished ? `${statusClass} bg-gray-50 opacity-60 rounded-xl p-4 cursor-pointer hover:shadow-md transition-all` : `food-card ${statusClass} ${statusBg} rounded-xl p-4 cursor-pointer shadow-sm hover:shadow-md transition-all`;
         
         return `
             <div class="${cardClass}" onclick="app.handleFoodCardClick(event, ${food.id})" data-food-id="${food.id}">
@@ -1133,8 +1133,7 @@ const app = {
                 </div>
 
                 ${(expiringFoods.length > 0 || expiredFoods.length > 0) ? `
-                <!-- 临期/过期提醒 -->
-                <div id="expiry-section" class="expiry-alert mb-6 animate-fadeIn">
+                <div id="expiry-section" class="expiry-alert mb-6 animate-fadeIn shadow-sm">
                     ${expiredFoods.length > 0 ? `
                     <div class="flex items-center gap-2 mb-3">
                         <span class="text-xl">⚠️</span>
@@ -1143,7 +1142,7 @@ const app = {
                     </div>
                     <div class="flex flex-wrap gap-2 mb-3">
                         ${expiredFoods.slice(0, 5).map(f => {
-                            return `<span class="px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm border-2 border-red-500 font-bold shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="app.showFoodDetail(${f.id})">
+                            return `<span class="px-3 py-1.5 bg-white text-red-600 rounded-full text-sm border border-red-500 font-bold shadow-sm shadow-red-400 cursor-pointer hover:shadow-md hover:shadow-red-400 transition-shadow" onclick="app.showFoodDetail(${f.id})">
                                 ${f.icon || utils.getCategoryIcon(f.category)} ${f.name} (已过期)
                             </span>`;
                         }).join('')}
@@ -1177,10 +1176,6 @@ const app = {
                             <i data-lucide="utensils" class="w-5 h-5 text-orange-500"></i>
                             近期食材
                         </h2>
-                        <button onclick="app.showAddModal()" class="btn btn-primary text-sm py-2 px-4">
-                            <i data-lucide="plus" class="w-4 h-4"></i>
-                            添加食材
-                        </button>
                     </div>
                     <div id="food-list" class="p-4">
                         ${state.foods?.filter(f => !f.is_finished).length > 0
@@ -1277,11 +1272,11 @@ const app = {
                 
                 <!-- 筛选和排序 -->
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <button id="foods-filter-btn" onclick="app.showFoodsFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white">
+                    <button id="foods-filter-btn" onclick="app.showFoodsFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white shadow-sm">
                         <i data-lucide="filter" class="w-4 h-4"></i>
                         筛选
                     </button>
-                    <select id="foods-sort" onchange="app.sortFoods()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white">
+                    <select id="foods-sort" onchange="app.sortFoods()" class="px-4 py-2 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white shadow-sm">
                         <option value="created_desc">最近添加</option>
                         <option value="created_asc">最早添加</option>
                         <option value="expiry_asc">最近过期</option>
@@ -1290,7 +1285,7 @@ const app = {
                         <option value="name_desc">名称 Z-A</option>
                     </select>
                     <div class="flex items-center gap-2 ml-auto">
-                        <button id="foods-batch-btn" onclick="app.toggleFoodsBatchMode()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white">
+                        <button id="foods-batch-btn" onclick="app.toggleFoodsBatchMode()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white shadow-sm">
                             <i data-lucide="check-square" class="w-4 h-4"></i>
                             批量管理
                         </button>
@@ -1331,7 +1326,7 @@ const app = {
                         <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">储存空间</h1>
                         <p class="text-gray-500">管理您的冰箱、橱柜等储存位置</p>
                     </div>
-                    <button onclick="app.showCreateLocationModal()" class="btn btn-primary text-sm py-2 px-4 whitespace-nowrap">
+                    <button onclick="app.showCreateLocationModal()" class="px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-200 hover:shadow-xl transition-all flex items-center gap-2">
                         <i data-lucide="plus" class="w-4 h-4"></i>
                         新建空间
                     </button>
@@ -1342,7 +1337,7 @@ const app = {
                         <div class="empty-state-icon">🏠</div>
                         <h3 class="empty-state-title">还没有储存空间</h3>
                         <p class="empty-state-text mb-6">创建您的第一个储存空间，比如"冰箱"、"储藏室"</p>
-                        <button onclick="app.showCreateLocationModal()" class="btn btn-primary text-sm py-2 px-4 whitespace-nowrap">
+                        <button onclick="app.showCreateLocationModal()" class="px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-200 hover:shadow-xl transition-all flex items-center gap-2">
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             创建第一个空间
                         </button>
@@ -1479,11 +1474,11 @@ const app = {
                     ${foodsHTML || childHTML || '<p class="text-gray-500 text-center py-4">暂无内容</p>'}
                 </div>
                 <div class="p-5 border-t border-gray-100 flex gap-3 bg-gray-50">
-                    <button onclick="app.deleteLocation(${locationId})" class="flex-1 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg shadow-red-200">
+                    <button onclick="app.deleteLocation(${locationId})" class="flex-1 py-3 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg shadow-red-200">
                         <i data-lucide="trash-2" class="w-5 h-5"></i>
                         删除
                     </button>
-                    <button onclick="app.editLocation(${locationId}); document.getElementById('location-detail-modal').remove(); document.getElementById('location-detail-backdrop').remove();" class="flex-1 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg shadow-orange-200">
+                    <button onclick="app.editLocation(${locationId}); document.getElementById('location-detail-modal').remove(); document.getElementById('location-detail-backdrop').remove();" class="flex-1 py-3 bg-orange-400 text-white rounded-xl hover:bg-orange-500 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg shadow-orange-200">
                         <i data-lucide="edit-2" class="w-5 h-5"></i>
                         编辑
                     </button>
@@ -1656,7 +1651,7 @@ const app = {
                         </h1>
                         <p class="text-gray-500">AI 根据您的食材智能推荐菜谱</p>
                     </div>
-                    <button onclick="app.navigateTo('recipes')" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
+                    <button onclick="app.navigateTo('recipes')" class="px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-200 hover:shadow-xl transition-all flex items-center gap-2">
                         <i data-lucide="book-open" class="w-4 h-4"></i>
                         历史菜谱
                     </button>
@@ -1754,12 +1749,12 @@ const app = {
                 </div>
                 
                 <div class="space-y-3">
-                    <button onclick="app.showEditProfileModal()" class="w-full py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium">
+                    <button onclick="app.showEditProfileModal()" class="w-full py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">
                         <i data-lucide="settings" class="w-5 h-5"></i>
                         账号设置
                     </button>
                     ${user.role === 'admin' ? `
-                        <button onclick="app.showAdminPanel()" class="w-full py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium">
+                        <button onclick="app.showAdminPanel()" class="w-full py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">
                             <i data-lucide="users" class="w-5 h-5"></i>
                             用户管理
                         </button>
@@ -1789,12 +1784,12 @@ const app = {
                 
                 <!-- 筛选和批量管理 -->
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <button id="filter-btn" onclick="app.showFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white">
+                    <button id="filter-btn" onclick="app.showFilterModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white shadow-sm">
                         <i data-lucide="filter" class="w-4 h-4"></i>
                         筛选
                     </button>
                     <div class="flex items-center gap-2 ml-auto">
-                        <button id="batch-manage-btn" onclick="app.toggleBatchMode()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white">
+                        <button id="batch-manage-btn" onclick="app.toggleBatchMode()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer bg-white shadow-sm">
                             <i data-lucide="check-square" class="w-4 h-4"></i>
                             批量管理
                         </button>
@@ -3138,7 +3133,7 @@ const app = {
         const confirmed = await ui.confirm({
             title: '退出登录',
             message: '确定要退出登录吗？',
-            type: 'info',
+            type: 'warning',
             icon: '👋'
         });
 
@@ -3982,7 +3977,7 @@ const app = {
                     <div class="text-6xl mb-4">⚠️</div>
                     <h2 class="text-xl font-bold text-gray-800 mb-2">出错了</h2>
                     <p class="text-gray-500 mb-4">${message}</p>
-                    <button onclick="location.reload()" class="px-6 py-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors">
+                    <button onclick="location.reload()" class="px-6 py-2 bg-orange-400 text-white rounded-xl hover:bg-orange-600 transition-colors">
                         刷新页面
                     </button>
                 </div>
